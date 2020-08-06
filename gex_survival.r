@@ -1,62 +1,56 @@
 # A script that plots Kaplan-Meier curves from a data table containing
 # both clinical information (survival) and gene expression.
 
+library(optparse)
 library(docstring)
-library(optigrab)
 library(survival)
 library(survminer)
 
-fn <- opt_get( "fn", default="TCGA-BRCA_data.tsv")
-cohort <- opt_get( "cohort", default="")
-genes <- opt_get( "genes", default="TP53")
-gendict <- opt_get( "gendict", default=NULL)
-timecol <- opt_get( "timecol", default="OS.time")
-eventcol <- opt_get( "eventcol", default="OS")
-gexprefix <- opt_get( "gexprefix", default="gex_")
-col2plot <- opt_get( "col2plot", default="3")
-row2plot <- opt_get( "row2plot", default="2")
+print(commandArgs())
 
-plotKMpair <- function(dt) 
+plotKMpair <- function(survivaltab, ptitle, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)") 
 #' Plot two Kaplan-Meier curves on a single plot.
 #' 
 #' @description This plots a Kaplan-Meier for two (sub)populations
 #' on a single figure in order to enable comparison of survival
 #' under a given condition and in its absence.
 #' 
-#' @param dt dataframe. Data to plot as a tble with "event" and "time"
-#' columns, plus a grouping column
-#' @param y character. The second item to paste Defaults to "!" but
+#' @param survivaltab dataframe. Data to plot as a table with "event" and "time"
+#' columns, plus a grouping column called "label".
+#' @param survivaltab character. The second item to paste Defaults to "!" but
 #' "?" would be pretty great too
-#' @usage mypaste(x, y)
+#' @usage plotKMpair(survivaltab, plot_title)
 #' @return The figure with two KM curves and a summary table.
-#' @details The inputs can be anything that can be input into
-#' the paste function.
+#' @details The survival table has to have an event, a time and a label columns.
 #' @examples
-#' mypaste(1, 3)
-#' mypaste("hey", "you")
-#' mypaste("single param")
-#' @export
-#' @importFrom base survminer
+#' plotKMpair(survivaltab, "A survival example")
+#' plotKMpair(survivaltab, cpalette=c('#e34a33', '#2b8cbe'))
+#' plotKMpair(survivaltab, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
+
 {
-  dualcolors <- c('#e34a33', '#2b8cbe')
   svive <- Surv(survivaltab$time, survivaltab$event)
   mfit <- do.call(survfit, list(formula=svive ~ label, data=survivaltab))
-  #ptitle <- paste(c(genes_renamed[[gene]], " expression"), collapse = '')
-  ptitle <- 'Halo'
-  msurvplot <- ggsurvplot(fit=mfit, xlab="Disease-free interval (months)", ylab="Survival (%)", surv.scale='percent', legend.title = ptitle, legend=c(0.7, 0.75), risk.table=TRUE, tables.height=0.2, fontsize=4, palette=dualcolors, pval=TRUE, legend.labs=levels(survivaltab$label), tables.col='strata')
-  msurvplot$table <- msurvplot$table + theme(axis.text.y = element_text(color="black"), axis.ticks.y = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x=element_blank(), axis.title.y=element_blank(), axis.line=element_blank(), plot.title=element_text(size=12))
-  #msurvplot$table <- msurvplot$table + scale_y_discrete(labels=c("Low", "High")) + theme(axis.text.y = element_text(hjust=0))
-  msurvplot$table <- msurvplot$table + scale_y_discrete(labels=c('', '')) + theme(legend.background=element_blank())
+  survplot <- ggsurvplot(fit=mfit, xlab=survtype, ylab="Survival (%)", surv.scale='percent',
+                         legend.title=ptitle, legend=c(0.7, 0.75), tables.col='strata', risk.table=TRUE, pval=TRUE,
+                         tables.height=0.2, fontsize=4, palette=cpalette, legend.labs=levels(survivaltab$label))
+  survplot$table <- survplot$table +
+    theme(axis.text.y = element_text(color="black"), axis.ticks.y = element_blank(), axis.title.y=element_blank(),
+          axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x=element_blank(),
+          axis.line=element_blank(), plot.title=element_text(size=12)) +
+    scale_y_discrete(labels=shortlabels) +
+    theme(axis.text.y = element_text(hjust=0))
+  survplot$plot <- survplot$plot + theme(legend.background=element_blank())
+  return(survplot)
 }
 
-showKMpairs <- function(fn, genes, gexprefix="gex_") 
+showKMpairs <- function(clinicals, genes, gexprefix="gex_") 
 #' Plot two Kaplan-Meier curves on a single plot for a series of genes.
 #' 
 #' @description This plots a Kaplan-Meier for both the low and the high
 #' expressing population for a given gene and arranges these plots into
 #' a single figure containing information on a series of genes.
 #' 
-#' @param dt dataframe. Data to plot as a tble with "event" and "time"
+#' @param dt dataframe. Data to plot as a table with "event" and "time"
 #' columns, plus a grouping column
 #' @param y character. The second item to paste Defaults to "!" but
 #' "?" would be pretty great too
@@ -71,7 +65,6 @@ showKMpairs <- function(fn, genes, gexprefix="gex_")
 #' @export
 #' @importFrom base survminer
 {
-  clinicals <- read.table(fn, header=TRUE, sep="\t")
   n <- 0
   survivalplots <- list()
   for (gene in genes){
@@ -79,18 +72,17 @@ showKMpairs <- function(fn, genes, gexprefix="gex_")
     gn <- paste0(gexprefix, gene)
     survivaltab <- clinicals[, c('DFI', 'DFI.time', gn)]
     colnames(survivaltab) <- c('event', 'time', 'gex')
+    survivaltab <- survivaltab[complete.cases(survivaltab),]
     mgex <- median(survivaltab$gex)
     survivaltab$label <- ifelse(survivaltab$gex < mgex, 'Low expression', 'High expression')
-    plotKMpair(survivaltab)
-    survivalplots[[n]] <- msurvplot
-    print(msurvplot)
+    cohort <- "BRCA"
+    ptitle <- paste0(gene, " expression in ", cohort)
+    genesym <- gene #genes_renamed[[gene]]
+    survplot <- plotKMpair(survivaltab, ptitle)
+    print(survplot)
+    survivalplots[[n]] <- survplot
   }
   surv_grob <- arrange_ggsurvplots(survivalplots, nrow=2, ncol=3, print=FALSE)
   p <- ggarrange(plotlist=surv_grob)
   return(p)
 }
-
-pdf(file=outname)
-showKMpairs(fn, genes=c("TP53", "PIDD1"))
-dev.off()
-print("hey")
