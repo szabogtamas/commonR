@@ -8,7 +8,13 @@ library(survminer)
 
 print(commandArgs())
 
-plotKMpair <- function(survivaltab, ptitle, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)") 
+plotKMpair <- function(
+  survivaltab,
+  ptitle,
+  cpalette=c('#e34a33', '#2b8cbe'),
+  shortlabels=c("Low", "High"),
+  survtype="Overall survival (months)"
+  )
 #' Plot two Kaplan-Meier curves on a single plot.
 #' 
 #' @description This plots a Kaplan-Meier for two (sub)populations
@@ -17,15 +23,18 @@ plotKMpair <- function(survivaltab, ptitle, cpalette=c('#e34a33', '#2b8cbe'), sh
 #' 
 #' @param survivaltab dataframe. Data to plot as a table with "event" and "time"
 #' columns, plus a grouping column called "label".
-#' @param survivaltab character. The second item to paste Defaults to "!" but
-#' "?" would be pretty great too
-#' @usage plotKMpair(survivaltab, plot_title)
+#' @param ptitle character. Title of the KM plot.
+#' @param cpalette vector, optional. Colors to be used. Blue and red by default.
+#' @param shortlabels vector, optional. Row names for the summary table.
+#' @param survtype character. Title of the x axis, telling what kind of survival is shown.
+#' @usage plotKMpair(survivaltable, plot_title)
 #' @return The figure with two KM curves and a summary table.
 #' @details The survival table has to have an event, a time and a label columns.
 #' @examples
-#' plotKMpair(survivaltab, "A survival example")
-#' plotKMpair(survivaltab, cpalette=c('#e34a33', '#2b8cbe'))
-#' plotKMpair(survivaltab, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
+#' plotKMpair(survivaltable, "A survival example")
+#' plotKMpair(survivaltable, cpalette=c('#e34a33', '#2b8cbe'))
+#' plotKMpair(survivaltable, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
+#' @export
 
 {
   svive <- Surv(survivaltab$time, survivaltab$event)
