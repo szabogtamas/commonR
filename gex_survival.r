@@ -14,8 +14,8 @@ plotKMpair <- function(
   cpalette=c('#e34a33', '#2b8cbe'),
   shortlabels=c("Low", "High"),
   survtype="Overall survival (months)"
-  )
-  {
+)
+{
   #' Plot two Kaplan-Meier curves on a single plot.
   #' 
   #' @description This plots Kaplan-Meier curves for (sub)populations
@@ -34,6 +34,7 @@ plotKMpair <- function(
   #' @details The survival table has to have event, time and label columns.
   #' By default, it calculates overall survial.
   #' @examples
+  #' survivaltable <- data.frame(event=c(NA, NA, 0, 1, 1, 1), time=c(NA, NA, 1556, 490, 3014, 2165), gex=c(17.63, 16.17, 17.79, 18.26, 17.04, 17.69), label=c('Low expression', 'Low expression', 'High expression', 'High expression', 'High expression', 'Low expression'))
   #' plotKMpair(survivaltable, "A survival example")
   #' plotKMpair(survivaltable, cpalette=c('#e34a33', '#2b8cbe'))
   #' plotKMpair(survivaltable, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
@@ -68,8 +69,8 @@ showKMpairs <- function(
   cpalette=c('#e34a33', '#2b8cbe'),
   shortlabels=c('Low', 'High'),
   survtype='Overall survival (months)'
-  )
-  {
+)
+{
   #' Plot two Kaplan-Meier curves on a single plot for a series of genes.
   #' 
   #' @description This plots a Kaplan-Meier for both the low and the high
@@ -100,6 +101,7 @@ showKMpairs <- function(
   #' @details The survival table has to have an event, a time and a label columns.
   #' By default, it calculates overall survial.
   #' @examples
+  #' clinicaltable <- data.frame(sample=c("TCGA-BH-A1ES-06A", "TCGA-BH-A1FE-06A", "TCGA-BH-A18V-06A", "TCGA-B6-A0X1-01A", "TCGA-GM-A2DA-01A", "TCGA-B6-A0RH-01A"), type=c("BRCA", "BRCA", "BRCA", "BRCA", "BRCA", "BRCA"), DFI.time=c(NA, NA, 1556, 490, 3014, 2165), DFI=c(NA, NA, 0, 1, 1, 1), gex_TP53=c(17.63, 16.17, 17.79, 18.26, 17.04, 17.69), gex_PTEN=c(9.903, 9.867, 17.110, 16.080, 14.380, 16.630))
   #' showKMpairs(clinicaltable, c('TP52', 'PTEN'))
   #' showKMpairs(clinicaltable, c('TP52', 'PTEN'), gexprefix='gex_', eventcol='DFI', timecol='DFI.time', timefactor=30, cohort='BRCA', title_text=" expressed", genedict=list(c('p53'), names=c('TP53')), numrows=2, numcols=3, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
   
@@ -120,6 +122,7 @@ showKMpairs <- function(
       if(gene %in% names(genedict)){
         genesym <- genedict[[gene]]
       }
+    }
     if(is.null(title_text)){
       title_text <- " expression"
     }
@@ -128,10 +131,11 @@ showKMpairs <- function(
     } else {
       ptitle <- paste0(genesym, title_text, " in ", cohort)
     }
-    
+      
     survplot <- plotKMpair(survivaltab, ptitle, cpalette=cpalette, shortlabels=shortlabels, survtype=survtype)
     survivalplots[[n]] <- survplot
   }
   surv_grob <- arrange_ggsurvplots(survivalplots, nrow=numrows, ncol=numcols, print=FALSE)
   return(ggarrange(plotlist=surv_grob))
 }
+  
