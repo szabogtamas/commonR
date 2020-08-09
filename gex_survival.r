@@ -95,14 +95,13 @@ showKMpairs <- function(
   #' @param shortlabels vector, optional. Row names for the summary table.
   #' @param survtype character, optional. Title of the x axis, telling what kind
   #' of survival is shown.
-  #' @usage plotKMpair(survivaltable, plot_title)
+  #' @usage showKMpairs(clinicaltable, genes)
   #' @return The figure with two KM curves and a summary table.
   #' @details The survival table has to have an event, a time and a label columns.
   #' By default, it calculates overall survial.
   #' @examples
-  #' plotKMpair(survivaltable, "A survival example")
-  #' plotKMpair(survivaltable, cpalette=c('#e34a33', '#2b8cbe'))
-  #' plotKMpair(survivaltable, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
+  #' showKMpairs(clinicaltable, c('TP52', 'PTEN'))
+  #' showKMpairs(clinicaltable, c('TP52', 'PTEN'), gexprefix='gex_', eventcol='DFI', timecol='DFI.time', timefactor=30, cohort='BRCA', title_text=" expressed", genedict=list(c('p53'), names=c('TP53')), numrows=2, numcols=3, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
   
   n <- 0
   survivalplots <- list()
@@ -116,15 +115,11 @@ showKMpairs <- function(
     mgex <- median(survivaltab$gex)
     survivaltab$label <- ifelse(survivaltab$gex < mgex, 'Low expression', 'High expression')
     
+    genesym <- gene
     if(is.null(genesym)){
       if(gene %in% names(genedict)){
-        genedict[[gene]]
-      } else {
-        genesym <- gene
+        genesym <- genedict[[gene]]
       }
-    } else {
-      genesym <- gene
-    }
     if(is.null(title_text)){
       title_text <- " expression"
     }
@@ -133,6 +128,7 @@ showKMpairs <- function(
     } else {
       ptitle <- paste0(genesym, title_text, " in ", cohort)
     }
+    
     survplot <- plotKMpair(survivaltab, ptitle, cpalette=cpalette, shortlabels=shortlabels, survtype=survtype)
     survivalplots[[n]] <- survplot
   }
