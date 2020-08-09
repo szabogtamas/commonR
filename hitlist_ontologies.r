@@ -19,6 +19,8 @@ parser <- add_option(parser, c("-f", "--inputfile"), default=NULL,
                      metavar="path_to_hitlist")
 opt <- parse_args(parser)
 
+#TODO: Add more options, design input format (list? dataframe?)
+
 
 # Check if mandatory arguments are present
 if ( is.null(opt$inputfile) ) { 
@@ -31,6 +33,7 @@ if ( is.null(opt$inputfile) ) {
 }
 
 # Define helper functions
+#TODO: split process into multiple functions
 
 plotTopEnrichments <- function(
   compLists
@@ -83,7 +86,7 @@ plotTopEnrichments <- function(
 if ( checkpass ) { 
   clinicals <- read.table(opt$inputfile, header=TRUE, sep="\t")
   pdf(file=opt$km_out,7.2, 5.4, onefile=FALSE)
-  print(plotTopEnrichments())
+  print(plotTopEnrichments()) # TODO: add option for returning a singe pdf file, separate figures or the figures as objects ("pickled?")
   if ( opt$verbose ) { 
     cat(paste0(Plots saved, "\n")) 
   }
