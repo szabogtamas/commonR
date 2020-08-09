@@ -6,7 +6,44 @@ library(docstring)
 library(survival)
 library(survminer)
 
-print(commandArgs())
+# Parse command line options
+parser <- OptionParser()
+parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=FALSE,
+              help="Print some progress messages to stdout.")
+parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
+              dest="verbose", help="Create figures quietly, without printing to stdout.")
+parser <- add_option(parser, c("-f", "--inputfile"), default=NULL, 
+              help="Data file containing survival information and gene expression.",
+              metavar="path_to_clinicals")
+parser <- add_option(parser, c("-g", "--genes"), default=NULL, 
+                     help="Data file containing survival information and gene expression.",
+                     metavar="genelist")
+parser <- add_option(parser, c("--km_out"), default="survival.pdf", 
+                     help="Path to save the Kaplan-Meier plots default: [%default]",
+                     metavar="kaplanmeier_file")
+parser <- add_option(parser, "--gexprefix", default="gex_", metavar="column name prefix",
+              help="Prefix for gene expression columns default: [%default]")
+opt <- parse_args(parser)
+
+# Check if mandatory arguments are present
+if ( is.null(opt$inputfile) ) { 
+  if ( opt$verbose ) { 
+    write("Sorry, cannot proceed without a data table. Please provide a path to survival and gene expression data...\n", stderr())
+  }
+  checkpass <- FALSE
+} else {
+  checkpass <- TRUE
+}
+if ( is.null(opt$genes) ) {  
+  if ( opt$verbose ) { 
+    write("No genes given. Cannot guess what genes are to be analysed.\n", stderr())
+  }
+  checkpass <- FALSE
+} else {
+  checkpass <- TRUE
+}
+
+# Define helper functions
 
 plotKMpair <- function(
   survivaltab,
@@ -42,7 +79,7 @@ plotKMpair <- function(
   svive <- Surv(survivaltab$time, survivaltab$event)
   mfit <- do.call(survfit, list(formula=svive ~ label, data=survivaltab))
   survplot <- ggsurvplot(fit=mfit, xlab=survtype, ylab="Survival (%)", surv.scale='percent',
-                         legend.title=ptitle, legend=c(0.7, 0.75), tables.col='strata', risk.table=TRUE, pval=TRUE,
+                         legend.title=ptitle, legend=c(0.6, 0.4), tables.col='strata', risk.table=TRUE, pval=TRUE,
                          tables.height=0.2, fontsize=4, palette=cpalette, legend.labs=levels(survivaltab$label))
   survplot$table <- survplot$table +
     theme(axis.text.y = element_text(color="black"), axis.ticks.y = element_blank(), axis.title.y=element_blank(),
@@ -103,7 +140,7 @@ showKMpairs <- function(
   #' @examples
   #' clinicaltable <- data.frame(sample=c("TCGA-BH-A1ES-06A", "TCGA-BH-A1FE-06A", "TCGA-BH-A18V-06A", "TCGA-B6-A0X1-01A", "TCGA-GM-A2DA-01A", "TCGA-B6-A0RH-01A"), type=c("BRCA", "BRCA", "BRCA", "BRCA", "BRCA", "BRCA"), DFI.time=c(NA, NA, 1556, 490, 3014, 2165), DFI=c(NA, NA, 0, 1, 1, 1), gex_TP53=c(17.63, 16.17, 17.79, 18.26, 17.04, 17.69), gex_PTEN=c(9.903, 9.867, 17.110, 16.080, 14.380, 16.630))
   #' showKMpairs(clinicaltable, c('TP52', 'PTEN'))
-  #' showKMpairs(clinicaltable, c('TP52', 'PTEN'), gexprefix='gex_', eventcol='DFI', timecol='DFI.time', timefactor=30, cohort='BRCA', title_text=" expressed", genedict=list(c('p53'), names=c('TP53')), numrows=2, numcols=3, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
+  #' showKMpairs(clinicaltable, c('TP52', 'PTEN'), gexprefix='gex_', eventcol='DFI', timecol='DFI.time', timefactor=30, cohort='BRCA', title_text=" expressed", genedict=list(TP53='p53'), numrows=2, numcols=3, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)")
   
   n <- 0
   survivalplots <- list()
@@ -138,4 +175,16 @@ showKMpairs <- function(
   surv_grob <- arrange_ggsurvplots(survivalplots, nrow=numrows, ncol=numcols, print=FALSE)
   return(ggarrange(plotlist=surv_grob))
 }
-  
+
+# Execute main function if mandatory arguments are supplied via the command line (otherwise print help message)
+if ( checkpass ) { 
+  clinicals <- read.table(opt$inputfile, header=TRUE, sep="\t")
+  #dev.off()
+  pdf(file=opt$km_out,7.2, 5.4, onefile=FALSE)
+  print(showKMpairs(clinicals, c('CASP2', 'AIM2'), gexprefix='gex_', eventcol='DFI', timecol='DFI.time', timefactor=30, cohort='BRCA', title_text=" expressed", genedict=list(TP53='p53'), numrows=6, numcols=5, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)"))
+  if ( opt$verbose ) { 
+    cat(paste0("Kaplan-Meier plots saved as ", opt$km_out, "\n")) 
+  }
+} else {
+  print_help(parser)
+}
