@@ -9,21 +9,52 @@ library(survminer)
 # Parse command line options
 parser <- OptionParser()
 parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=FALSE,
-              help="Print some progress messages to stdout.")
+                     help="Print some progress messages to stdout.")
 parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
-              dest="verbose", help="Create figures quietly, without printing to stdout.")
+                     dest="verbose", help="Create figures quietly, without printing to stdout.")
 parser <- add_option(parser, c("-f", "--inputfile"), default=NULL, 
-              help="Data file containing survival information and gene expression.",
-              metavar="path_to_clinicals")
+                     help="Data file containing survival information and gene expression.",
+                     metavar="path_to_clinicals")
 parser <- add_option(parser, c("-g", "--genes"), default=NULL, 
                      help="Data file containing survival information and gene expression.",
                      metavar="genelist")
 parser <- add_option(parser, c("--km_out"), default="survival.pdf", 
                      help="Path to save the Kaplan-Meier plots default: [%default]",
                      metavar="kaplanmeier_file")
+parser <- add_option(parser, c("--event"), default="OS", 
+                     help="Column name for the event: [%default]",
+                     metavar="survival event column")
+parser <- add_option(parser, c("--time"), default="OS.time", 
+                     help="Column for survival times: [%default]",
+                     metavar="survival time column")
+parser <- add_option(parser, c("--timefactor"), default=30, type="integer", 
+                     help="Scaling factor for time data (e.g. converting to months): [%default]",
+                     metavar="time factor")
+parser <- add_option(parser, c("--cohort"), default=NULL, 
+                     help="Cohort name: [%default]")
+parser <- add_option(parser, c("--title_text"), default=NULL, 
+                     help="Text added to subplot titles: [%default]",
+                     metavar="title text")
+parser <- add_option(parser, c("--genedict"), default=NULL, 
+                     help="A gene name mapping: [%default]",
+                     metavar="gene_names")
+parser <- add_option(parser, c("--numrows"), default=2, type="integer", 
+                     help="Number of subplots in a row: [%default]")
+parser <- add_option(parser, c("--numcols"), default=3, type="integer", 
+                     help="Number of subplots in a column: [%default]")
+parser <- add_option(parser, c("--cpalette"), default="#e34a33,#2b8cbe", 
+                     help="Color palette: [%default]",
+                     metavar="colors")
+parser <- add_option(parser, c("--shortlabels"), default="Low,High", 
+                     help="Short labels that with appear in the survival table: [%default]",
+                     metavar="table_rows")
+parser <- add_option(parser, c("--survtype"), default="Disease-free interval (months)", 
+                     help="Path to save the Kaplan-Meier plots default: [%default]",
+                     metavar="x_label")
 parser <- add_option(parser, "--gexprefix", default="gex_", metavar="column name prefix",
-              help="Prefix for gene expression columns default: [%default]")
+                     help="Prefix for the gene expression column: [%default]")
 opt <- parse_args(parser)
+
 
 # Check if mandatory arguments are present
 if ( is.null(opt$inputfile) ) { 
@@ -40,8 +71,19 @@ if ( is.null(opt$genes) ) {
   }
   checkpass <- FALSE
 } else {
+  opt$genes <- unlist(strsplit(opt$genes, ","))
   checkpass <- TRUE
 }
+if ( is.null(opt$genedict) ) {  
+  opt$genedict <- list()
+} else {
+  ntab <- read.table(opt$genedict, header=FALSE, sep="\t", row.names=2)
+  opt$genedict <- ntab[,1]
+  names(opt$genedict) <- rownames(ntab)
+}
+
+opt$cpalette <- unlist(strsplit(opt$cpalette, ","))
+opt$shortlabels <- unlist(strsplit(opt$shortlabels, ","))
 
 # Define helper functions
 
@@ -168,7 +210,7 @@ showKMpairs <- function(
     } else {
       ptitle <- paste0(genesym, title_text, " in ", cohort)
     }
-      
+    
     survplot <- plotKMpair(survivaltab, ptitle, cpalette=cpalette, shortlabels=shortlabels, survtype=survtype)
     survivalplots[[n]] <- survplot
   }
@@ -179,12 +221,12 @@ showKMpairs <- function(
 # Execute main function if mandatory arguments are supplied via the command line (otherwise print help message)
 if ( checkpass ) { 
   clinicals <- read.table(opt$inputfile, header=TRUE, sep="\t")
-  #dev.off()
   pdf(file=opt$km_out,7.2, 5.4, onefile=FALSE)
-  print(showKMpairs(clinicals, c('CASP2', 'AIM2'), gexprefix='gex_', eventcol='DFI', timecol='DFI.time', timefactor=30, cohort='BRCA', title_text=" expressed", genedict=list(TP53='p53'), numrows=6, numcols=5, cpalette=c('#e34a33', '#2b8cbe'), shortlabels=c("Low", "High"), survtype="Disease-free interval (months)"))
+  print(showKMpairs(clinicals, opt$genes, gexprefix=opt$gexprefix, eventcol=opt$eventcol, timecol=opt$timecol, timefactor=opt$timefactor, cohort=opt$cohort, title_text=opt$title_text, genedict=opt$genedict, numrows=opt$numrows, numcols=opt$numcols, cpalette=opt$cpalette, shortlabels=opt$shortlabels, survtype=opt$survtype))
   if ( opt$verbose ) { 
     cat(paste0("Kaplan-Meier plots saved as ", opt$km_out, "\n")) 
   }
+  dev.off()
 } else {
   print_help(parser)
 }
