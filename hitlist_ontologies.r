@@ -25,9 +25,12 @@ main <- function(){
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
   geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
-  
+
   enrichment <- single_enrichment(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
   p1 <- single_enrichdot(enrichment, plot_title=plot_title)
+  p2 <- cnetplot(enrichment)
+
+  grid.arrange(p1, p2, ncol=1)
 
   pdf(outFile, height=9.6, width=7.2)
   print(p1)
