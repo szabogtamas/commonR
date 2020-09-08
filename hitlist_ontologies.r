@@ -51,7 +51,7 @@ single_enrichdot <- function(enrichment, plot_title=plot_title){
     limits=c(0.00001, 1), trans='log10', oob = scales::squish
   ) +
   theme(
-    axis.text.x=element_text(angle=30, hjust=1)
+    axis.text.x=element_text(angle=30, hjust=1),
     axis.text.y=element_text(size=8)
   )
 }
