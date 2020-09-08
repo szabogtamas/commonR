@@ -48,8 +48,12 @@ single_enrichdot <- function(enrichment, plot_title=plot_title){
   scale_color_gradientn(
     colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
     breaks=c(0.05, 0.01, 0.001, 0.0001),
-    limits=c(0.00001, 1), trans='log10', oob = scales::squish) +
-  theme(axis.text.x=element_text(angle=30, hjust=1))
+    limits=c(0.00001, 1), trans='log10', oob = scales::squish
+  ) +
+  theme(
+    axis.text.x=element_text(angle=30, hjust=1)
+    axis.text.y=element_text(size=8)
+  )
 }
 
 if (!interactive()) {
