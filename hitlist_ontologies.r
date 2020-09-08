@@ -24,16 +24,19 @@ main <- function(){
   geneSet <-msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
+  geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
+
+  print("hi")
 
   pdf(outFile)
   
-  enrichment <- single_enrichment(hitGenes, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
+  enrichment <- single_enrichment(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
   single_enrichdot(enrichment, plot_title=plot_title)
   dev.off()
 }
 
-single_enrichment <- function(hitGenes, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff){
-  enricher(hitGenes, TERM2GENE=geneSet[,c('gs_name', 'gene_symbol')], pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
+single_enrichment <- function(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff){
+  enricher(hitGenes, TERM2GENE=geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
 }
 
 single_enrichdot <- function(enrichment, plot_title=plot_title){
