@@ -31,10 +31,10 @@ main <- function(){
   p1 <- single_enrichdot(enrichment, plot_title=plot_title)
   p2 <- cnetplot(enrichment)
 
-  plot_grid(p1, p2, ncol=1, labels="AUTO")
+  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
 
   pdf(outFile, height=9.6, width=7.2)
-  print(p1)
+  print(p)
   dev.off()
 }
 
