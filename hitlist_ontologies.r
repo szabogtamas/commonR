@@ -4,7 +4,7 @@
 
 library(tidyr)
 library(ggplot2)
-library(grid)
+library(cowplot)
 library(msigdbr)
 library(clusterProfiler)
 
@@ -31,7 +31,7 @@ main <- function(){
   p1 <- single_enrichdot(enrichment, plot_title=plot_title)
   p2 <- cnetplot(enrichment)
 
-  grid.arrange(p1, p2, ncol=1)
+  plot_grid(p1, p2, ncol=1, labels="AUTO")
 
   pdf(outFile, height=9.6, width=7.2)
   print(p1)
