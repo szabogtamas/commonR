@@ -28,7 +28,7 @@ main <- function(){
   pdf(outFile)
   
   enrichment <- single_enrichment(hitGenes, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
-  single_enrichdot(enrichment, plot_title=plot_title))
+  single_enrichdot(enrichment, plot_title=plot_title)
   dev.off()
 }
 
