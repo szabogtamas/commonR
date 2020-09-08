@@ -26,9 +26,7 @@ main <- function(){
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
   geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
 
-  print("hi")
-
-  pdf(outFile)
+  pdf(outFile, height=9.6, width=7.2)
   
   enrichment <- single_enrichment(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
   single_enrichdot(enrichment, plot_title=plot_title)
