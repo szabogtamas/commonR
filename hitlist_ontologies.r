@@ -68,6 +68,11 @@ single_genedot <- function(enrichment){
     group_by(geneID) %>%
     add_tally(wt=score) %>%
     arrange(desc(n))
+    select(ID, geneID, BgRatio) %>%
+    transform(BgRatio = log10(BgRatio)) %>%
+    spread(geneID, BgRatio, fill=0)  %>%
+    `rownames<-`(.[["ID"]]) %>%
+    .[,-1]
 }
 
 if (!interactive()) {
