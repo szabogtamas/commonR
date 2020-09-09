@@ -16,12 +16,24 @@ parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=
                      help="Print some progress messages to stdout.")
 parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
                      dest="verbose", help="Create figures quietly, without printing to stdout.")
-parser <- add_option(parser, c("-f", "--inputfile"), default=NULL, 
-                     help="Data file containing gene names, optionally scores and labels.",
-                     metavar="path_to_hitlist")
+parser <- add_option(parser, c("-i", "--hitGenes"), default=NULL, 
+                     help="Comma separated list of hit genes.",
+                     metavar="hit_genes")
+parser <- add_option(parser, c("-o", "--outFile"), default=NULL, 
+                     help="File name prefix where to save output plots.",
+                     metavar="out_prefix")
 opt <- parse_args(parser)
 
-#TODO: Add more options, design input format (list? dataframe?)
+
+hitGenes <- unlist(strsplit(hitGenes, ",", fixed=TRUE))
+
+plot_title <- 'Top gene sets'
+msig_species <- "Mus musculus"
+msig_category <- "C5"
+msig_subcategory <- "BP"
+
+pAdjustMethod <- "none"
+qvalueCutoff <- 1
 
 
 # Check if mandatory arguments are present
@@ -33,20 +45,6 @@ if ( is.null(opt$inputfile) ) {
 } else {
   checkpass <- TRUE
 }
-
-
-args = commandArgs(trailingOnly=TRUE)
-
-outFile <- args[1]
-hitGenes <- unlist(strsplit(args[2], ",", fixed=TRUE))
-
-plot_title <- 'Top gene sets'
-msig_species <- "Mus musculus"
-msig_category <- "C5"
-msig_subcategory <- "BP"
-
-pAdjustMethod <- "none"
-qvalueCutoff <- 1
 
 main <- function(){
   geneSet <-msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
