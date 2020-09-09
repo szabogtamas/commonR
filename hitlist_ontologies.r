@@ -61,15 +61,18 @@ single_genedot <- function(enrichment){
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
     transform(score = seq(length(detailedsets), 1, -1)) %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
-    transform(BgRatio = as.numeric(BgRatio)) %>%
+    transform(GeneSetSize = as.numeric(BgRatio)) %>%
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
     unnest(geneID) %>%
     group_by(geneID) %>%
     add_tally(wt=score) %>%
+    mutate(genePriority = n) %>%
     arrange(desc(n))
     
-    ggplot(data=geneFuns, aes(geneID, ID)) + geom_point(aes(size=BgRatio, color=BgRatio))
+  ggplot(data=geneFuns, aes(geneID, ID)) +
+    geom_point(aes(size=GeneSetSize, color=n)) +
+    scale_y_discrete(limits=rev(detailedsets), labels=rev(detailedsets))
 }
 
 if (!interactive()) {
