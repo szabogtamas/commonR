@@ -35,17 +35,7 @@ msig_subcategory <- "BP"
 pAdjustMethod <- "none"
 qvalueCutoff <- 1
 
-
-# Check if mandatory arguments are present
-if ( is.null(opt$inputfile) ) { 
-  if ( opt$verbose ) { 
-    write("Sorry, cannot proceed without a data table. Please provide a path to hitlists.\n", stderr())
-  }
-  checkpass <- FALSE
-} else {
-  checkpass <- TRUE
-}
-
+### Define a main function that will only be executed if called from command line
 main <- function(){
   geneSet <-msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
@@ -64,10 +54,34 @@ main <- function(){
 }
 
 single_enrichment <- function(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff){
+  
+  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' 
+  #' @description ...
+  #' 
+  #' @param compLists dataframe. Data to plot 
+  #' @usage ...
+  #' @return ...
+  #' @details ...
+  #' @examples
+  #' ...
+
   enricher(hitGenes, TERM2GENE=geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
 }
 
 single_enrichdot <- function(enrichment, plot_title=plot_title){
+
+  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' 
+  #' @description ...
+  #' 
+  #' @param compLists dataframe. Data to plot 
+  #' @usage ...
+  #' @return ...
+  #' @details ...
+  #' @examples
+  #' ...
+
   clusterProfiler::dotplot(enrichment, showCategory=30) +
   labs(title=plot_title) +
   scale_color_gradientn(
@@ -82,6 +96,17 @@ single_enrichdot <- function(enrichment, plot_title=plot_title){
 }
 
 single_genedot <- function(enrichment){
+  
+  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' 
+  #' @description ...
+  #' 
+  #' @param compLists dataframe. Data to plot 
+  #' @usage ...
+  #' @return ...
+  #' @details ...
+  #' @examples
+  #' ...
 
   topenr <- enrichment@result[1:30, c("ID", "p.adjust", "BgRatio", "geneID")]
     rownames(topenr) <- topenr$ID
@@ -116,19 +141,22 @@ single_genedot <- function(enrichment){
 }
 
 if (!interactive()) {
-  main()
-}
-
-
-# Execute main function if mandatory arguments are supplied via the command line (otherwise print help message)
-if ( checkpass ) { 
-  clinicals <- read.table(opt$inputfile, header=TRUE, sep="\t")
-  pdf(file=opt$km_out,7.2, 5.4, onefile=FALSE)
-  print(plotTopEnrichments()) # TODO: add option for returning a singe pdf file, separate figures or the figures as objects ("pickled?")
-  if ( opt$verbose ) { 
-    cat(paste0(Plots saved, "\n")) 
+  
+  # Check if mandatory arguments are present
+  if ( is.null(opt$inputfile) ) { 
+    if ( opt$verbose ) { 
+      write("Sorry, cannot proceed without a data table. Please provide a path to hitlists.\n", stderr())
+    }
+    checkpass <- FALSE
+  } else {
+    checkpass <- TRUE
   }
-  dev.off()
-} else {
-  print_help(parser)
+
+  # Execute main function if mandatory arguments set (otherwise print help message)
+  if ( checkpass ) { 
+    main()
+  } else {
+    print_help(parser)
+  }
+  
 }
