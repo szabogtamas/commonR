@@ -69,7 +69,7 @@ single_genedot <- function(enrichment){
     add_tally(wt=score) %>%
     arrange(desc(n))
     
-    ggplot(data=geneFuns, aes(geneID, ID)) + geom_point(aes(size = BgRatio))
+    ggplot(data=geneFuns, aes(geneID, ID)) + geom_point(aes(size=BgRatio, color=BgRatio))
 }
 
 if (!interactive()) {
