@@ -29,7 +29,7 @@ main <- function(){
 
   enrichment <- single_enrichment(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
   p1 <- single_enrichdot(enrichment, plot_title=plot_title)
-  p2 <- cnetplot(enrichment)
+  p2 <- single_genedot(enrichment)
 
   p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
 
@@ -54,6 +54,20 @@ single_enrichdot <- function(enrichment, plot_title=plot_title){
     axis.text.x=element_text(angle=30, hjust=1),
     axis.text.y=element_text(size=8)
   )
+}
+
+single_genedot <- function(enrichment){
+  geneFuns <- enrichment@result %>%
+    .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
+    transform(score = seq(length(detailedsets), 1, -1)) %>%
+    transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
+    transform(BgRatio = as.numeric(BgRatio)) %>%
+    transform(geneID = as.character(geneID)) %>%
+    transform(geneID = strsplit(geneID, "/")) %>%
+    unnest(geneID) %>%
+    group_by(geneID) %>%
+    add_tally(wt=score) %>%
+    arrange(desc(n))
 }
 
 if (!interactive()) {
