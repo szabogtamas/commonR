@@ -67,12 +67,9 @@ single_genedot <- function(enrichment){
     unnest(geneID) %>%
     group_by(geneID) %>%
     add_tally(wt=score) %>%
-    arrange(desc(n)) %>%
-    select(ID, geneID, BgRatio) %>%
-    transform(BgRatio = log10(BgRatio)) %>%
-    spread(geneID, BgRatio, fill=0)  %>%
-    `rownames<-`(.[["ID"]]) %>%
-    .[,-1]
+    arrange(desc(n))
+    
+    ggplot(data=geneFuns, aes(geneID, ID)) + geom_point(aes(size = BgRatio))
 }
 
 if (!interactive()) {
