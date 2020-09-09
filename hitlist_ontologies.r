@@ -84,8 +84,10 @@ single_genedot <- function(enrichment){
     arrange(desc(n))
 
   ggplot(data=geneFuns, aes(geneID, ID)) +
-    geom_point(aes(size=GeneSetSize, color=n)) +
-    scale_y_discrete(limits=rev(detailedsets), labels=rev(detailedsets))
+    geom_point(aes(size=GeneSetSize, color=genePriority)) +
+    scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
+    scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
+    theme(axis.text.x=element_text(size=8, angle=30, hjust=1), legend.position="bottom")
 }
 
 if (!interactive()) {
