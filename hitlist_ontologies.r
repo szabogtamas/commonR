@@ -57,6 +57,19 @@ single_enrichdot <- function(enrichment, plot_title=plot_title){
 }
 
 single_genedot <- function(enrichment){
+
+  topenr <- enrichment@result[1:30, c("ID", "p.adjust", "BgRatio", "geneID")]
+    rownames(topenr) <- topenr$ID
+
+    detailedsets <- c()
+    detailedgenes <- c()
+    for (geneset in rownames(topenr)){
+      if(length(detailedgenes) < 25){
+        detailedgenes <- unique(c(detailedgenes, unlist(strsplit(topenr[geneset, "geneID"], "/"))))
+        detailedsets <- c(detailedsets, geneset)
+      }
+    }
+
   geneFuns <- enrichment@result %>%
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
     transform(score = seq(length(detailedsets), 1, -1)) %>%
@@ -69,7 +82,7 @@ single_genedot <- function(enrichment){
     add_tally(wt=score) %>%
     mutate(genePriority = n) %>%
     arrange(desc(n))
-    
+
   ggplot(data=geneFuns, aes(geneID, ID)) +
     geom_point(aes(size=GeneSetSize, color=n)) +
     scale_y_discrete(limits=rev(detailedsets), labels=rev(detailedsets))
