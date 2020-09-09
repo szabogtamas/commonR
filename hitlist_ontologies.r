@@ -67,7 +67,7 @@ single_genedot <- function(enrichment){
     unnest(geneID) %>%
     group_by(geneID) %>%
     add_tally(wt=score) %>%
-    arrange(desc(n))
+    arrange(desc(n)) %>%
     select(ID, geneID, BgRatio) %>%
     transform(BgRatio = log10(BgRatio)) %>%
     spread(geneID, BgRatio, fill=0)  %>%
