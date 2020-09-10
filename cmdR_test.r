@@ -50,13 +50,14 @@ if (!interactive()) {
       parser,
       paste0("--", rgn)
     )
-    print(rl)
     rl <- c(rl, rg)
     parser <- do.call(add_option, rl)
   }
   opt <- parse_args(parser)
   print(opt)
 }
+
+#TODO: pass default arguments to main function differently if interactive
 
 ### Define a main function that will only be executed if called from command line
 main <- function(hitGenes, ...){
