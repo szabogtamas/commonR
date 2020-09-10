@@ -36,7 +36,7 @@ suppressPackageStartupMessages(library(docstring))
 
 if (!interactive()) {
   # Parse command line options if not sourced
-  parser <- OptionParser(usage=paste0("Purpose: ", scriptDescription, "\nUsage: %prog [options]")
+  parser <- OptionParser(usage=paste0("Purpose: ", scriptDescription, "\nUsage: %prog [options]"))
   parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=FALSE,
                       help="Print some progress messages to stdout.")
   parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
@@ -54,8 +54,8 @@ if (!interactive()) {
     rl <- c(rl, rg)
     parser <- do.call(add_option, rl)
   }
-
-  print(parser)
+  opt <- parse_args(parser)
+  print(opt)
 }
 
 ### Define a main function that will only be executed if called from command line
