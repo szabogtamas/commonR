@@ -45,12 +45,12 @@ if (!interactive()) {
                       help="Comma separated list of hit genes.",
                       metavar="hit_genes")
   for (rgn in names(scriptOptionalArgs)){
-    print(rgn)
     rg <- scriptOptionalArgs[[rgn]]
     rl <- list(
       parser,
-      paste0("--", deparse(substitute(rgn)))
+      paste0("--", rgn))
     )
+    print(rl)
     rl <- c(rl, rg)
     parser <- do.call(add_option, rl)
   }
