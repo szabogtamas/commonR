@@ -48,7 +48,7 @@ if (!interactive()) {
     rg <- scriptOptionalArgs[[rgn]]
     rl <- list(
       parser,
-      paste0("--", rgn))
+      paste0("--", rgn)
     )
     print(rl)
     rl <- c(rl, rg)
