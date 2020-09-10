@@ -2,38 +2,78 @@
 
 # A script that takes a hitlist and shows top gene ontologies
 
-library(optparse)
-library(docstring)
+scriptMandatoryArgs <- c("hitGenes", "outFile")
+
+scriptOptionalArgs <- list(
+  plot_title = list(
+    default='Top gene sets',
+    help="Title to be put over the first subfigure."
+  ),
+  msig_species = list(
+    default="Mus musculus",
+    help="Organism name where to look for gene symbols."
+  ),
+  msig_category = list(
+    default="C5",
+    help="Main division of MSigDB."
+  ),
+  msig_subcategory = list(
+    default="BP",
+    help="Subdivision of MSigDB."
+  ),
+  pAdjustMethod = list(
+    default="none",
+    help="Change this to BH for Bonferroni correction."
+  ),
+  qvalueCutoff = list(
+    default=1,
+    help="An FDR of 0.05 is usually too stringent."
+  )
+
+suppressPackageStartupMessages(library("optparse"))
+suppressPackageStartupMessages(library("docstring"))
+
 library(tidyr)
 library(ggplot2)
 library(cowplot)
 library(msigdbr)
 library(clusterProfiler)
 
-# Parse command line options
-parser <- OptionParser()
-parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=FALSE,
-                     help="Print some progress messages to stdout.")
-parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
-                     dest="verbose", help="Create figures quietly, without printing to stdout.")
-parser <- add_option(parser, c("-i", "--hitGenes"), default=NULL, 
-                     help="Comma separated list of hit genes.",
-                     metavar="hit_genes")
-parser <- add_option(parser, c("-o", "--outFile"), default=NULL, 
-                     help="File name prefix where to save output plots.",
-                     metavar="out_prefix")
-opt <- parse_args(parser)
 
 
-hitGenes <- unlist(strsplit(hitGenes, ",", fixed=TRUE))
 
-plot_title <- 'Top gene sets'
-msig_species <- "Mus musculus"
-msig_category <- "C5"
-msig_subcategory <- "BP"
+if (!interactive()) {
+  # Parse command line options if not sourced
+  parser <- OptionParser()
+  parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=FALSE,
+                      help="Print some progress messages to stdout.")
+  parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
+                      dest="verbose", help="Create figures quietly, without printing to stdout.")
+  parser <- add_option(parser, c("-i", "--hitGenes"), default=NULL, 
+                      help="Comma separated list of hit genes.",
+                      metavar="hit_genes")
+  parser <- add_option(parser, c("-o", "--outFile"), default=NULL, 
+                      help="File name prefix where to save output plots.",
+                      metavar="msig_category")
+  parser <- add_option(parser, c("-o", "--outFile"), default=NULL, 
+                      help="File name prefix where to save output plots.",
+                      metavar="msig_subcategory")
+  parser <- add_option(parser, c("-o", "--plot_title"), default=NULL, 
+                      help="File name prefix where to save output plots.",
+                      metavar="out_prefix")
+  parser <- add_option(parser, c("-o", "--msig_species"), default=NULL, 
+                      help="File name prefix where to save output plots.",
+                      metavar="out_prefix")
+  parser <- add_option(parser, c("-o", "--outFile"), default=NULL, 
+                      help="File name prefix where to save output plots.",
+                      metavar="out_prefix")
+  parser <- add_option(parser, c("-o", "--outFile"), default=NULL, 
+                      help="File name prefix where to save output plots.",
+                      metavar="out_prefix")
+  opt <- parse_args(parser)
 
-pAdjustMethod <- "none"
-qvalueCutoff <- 1
+  print(opt)
+}
 
 ### Define a main function that will only be executed if called from command line
 main <- function(){
