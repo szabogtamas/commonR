@@ -64,9 +64,14 @@ if (!interactive()) {
           } else {
             if (rg[["type"]] == "nested") {
               nl <- list()
-              for (x in unlist(strsplit(opt[[rn]], ":", fixed=TRUE))){
+              sl <- unlist(strsplit(opt[[rn]], ":", fixed=TRUE))
+              for (x in sl){
                 x <- unlist(strsplit(x, ",", fixed=TRUE))
-                nl[[x[1]]] <- x[2:length(x)]
+                if (length(sl) > 1){
+                  nl[[x[1]]] <- x[2:length(x)]
+                } else {
+                  nl[[1]] <- x
+                }
               }
               opt[[rn]] <- nl
             } else {
