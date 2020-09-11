@@ -99,6 +99,11 @@ if (!interactive()) {
         rga <- c(rg[["abbr"]], rga)
       }
       rg[["abbr"]] <- NULL
+      
+      if ("abbr" %in% names(rg) ) {
+        rga <- c(rg[["abbr"]], rga)
+      }
+      rg[["abbr"]] <- NULL
 
       rl <- list(parser, rga)
       rl <- c(rl, rg)
@@ -122,7 +127,7 @@ if (!interactive()) {
   }
 
   # Execute main function if mandatory arguments are set (otherwise print help message)
-  if ( checkpass ) { 
+  if (checkpass) { 
     do.call(main, opt)
   } else {
     print_help(parser)
