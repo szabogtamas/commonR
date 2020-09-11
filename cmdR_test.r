@@ -117,9 +117,11 @@ if (!interactive()) {
   for (rn in names(c(scriptMandatoryArgs, scriptOptionalArgs))){
     rg <- c(scriptMandatoryArgs, scriptOptionalArgs)[[rn]]
     if ("type" %in% names(rg) ) {
-        if (rg[["type"]] %in% c("list", "nested") ) {
-          if (rg[["type"]] == "list") {
-            opt[[rn]] <- unlist(strsplit(opt[[rn]], fixed=TRUE))
+        if (rg[["type"]] %in% c("vector", "nested") ) {
+          if (rg[["type"]] == "vector") {
+            opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
+          } else {
+            opt[[rn]] <- unlist(strsplit(opt[[rn]], ":", fixed=TRUE))
           }
         }
       }
