@@ -58,42 +58,26 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-if(!("tidyr" %in% (.packages()))){
-  library(tidyr) 
-}
-if(!("dplyr" %in% (.packages()))){
-  library(dplyr) 
-}
-if(!("ggplot2" %in% (.packages()))){
-  library(ggplot2) 
-}
-if(!("cowplot" %in% (.packages()))){
-  library(cowplot) 
-}
-if(!("msigdbr" %in% (.packages()))){
-  library(msigdbr) 
-}
-if(!("clusterProfiler" %in% (.packages()))){
-  library(clusterProfiler) 
-}
+ z <- c("tidyr", "dplyr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler")
 
-suppressPackageStartupMessages(library(optparse))
-suppressPackageStartupMessages(library(docstring))
+for (pk in c("tidyr", "dplyr")){
+  if(!(pk %in% (.packages()))){
+    library(pk, character.only=TRUE)
+  }
+}
 
 ### Define a main function that will only be executed if called from command line
-main <- function(opt=opt){
+main <- function(opt){
+  verbose <- opt$verbose
+  hitGenes <- opt$hitGenes
+
+  print(length(hitGenes[[1]]))
+  print(opt)
+}
+
+plot_enrichment_for_single <- function(opt){
 
   verbose <- opt$verbose
-
-  if(verbose){
-    print(paste0("Downloading ", opt$msig_category, "/", opt$msig_subcategory, "for ", opt$msig_species))
-  }
-  geneSet <-msigdbr(species=opt$msig_species, category=opt$msig_category, subcategory=opt$msig_subcategory)
-  geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
-  geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
-  geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
-  opt$geneSet <- geneSet
-
   if(verbose){
     print("Looking for gene set enrichments")
   }
@@ -113,7 +97,8 @@ main <- function(opt=opt){
     print("Combining subplots and saving figure")
   }
   pdf(paste0(opt$outFile, ".pdf"), height=9.6, width=7.2)
-  plot_grid(p1, p2, nrow=2, labels="AUTO")
+  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+  print(p)
   dev.off()
 }
 
@@ -265,87 +250,4 @@ plotMultipleEnrichments <- function(
   return(richPlot)
 }
 
-if (!interactive()) {
-  
-  # Initialize parser with verbosity and description of script
-  parser <- OptionParser(usage=paste0("%prog [options]\nDescription:\n  ", scriptDescription))
-  parser <- add_option(
-    parser,
-    c("-v", "--verbose"),
-    action="store_true",
-    default=FALSE,
-    help="Print some progress messages to stdout."
-    )
-  parser <- add_option(
-    parser,
-    c("-q", "--quietly"),
-    action="store_false",
-    dest="verbose",
-    help="Create figures quietly, without printing to stdout."
-    )
-
-  # Add arguments to parser
-  an <- 0
-  for (al in list(scriptMandatoryArgs, scriptOptionalArgs)){
-    for (rgn in names(al)){
-      rg <- al[[rgn]]
-      if (an < 1){
-        rg[["default"]] <- NULL
-      }
-
-      rga <- paste0("--", rgn)
-      if ("abbr" %in% names(rg) ) {
-        rga <- c(rg[["abbr"]], rga)
-        rg[["abbr"]] <- NULL
-      }
-
-      if ("type" %in% names(rg) ) {
-        rg[["type"]] <- NULL
-      }
-
-      rl <- list(parser, rga)
-      rl <- c(rl, rg)
-      parser <- do.call(add_option, rl)
-      an <- an +1
-    }
-  }
-
-  # Parse command line options and split up lists or nested lists
-  opt <- parse_args(parser)
-  for (rn in names(c(scriptMandatoryArgs, scriptOptionalArgs))){
-    rg <- c(scriptMandatoryArgs, scriptOptionalArgs)[[rn]]
-    if ("type" %in% names(rg) ) {
-        if (rg[["type"]] %in% c("vector", "nested") ) {
-          if (rg[["type"]] == "vector") {
-            opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
-          } else {
-            nl <- list()
-            for (x in unlist(strsplit(opt[[rn]], ":", fixed=TRUE))){
-              x <- unlist(strsplit(x, ",", fixed=TRUE))
-              nl[[x[1]]] <- x[2:length(x)]
-            }
-            opt[[rn]] <- nl
-          }
-        }
-      }
-  }
-  
-
-  # Check if mandatory arguments are present
-  passed_args <- opt[names(scriptMandatoryArgs)]
-  if (any(is.na(names(passed_args)))) {
-    if (opt$verbose) { 
-      write("Sorry, cannot proceed without all mandatory arguments.\n", stderr())
-    }
-    checkpass <- FALSE
-  } else {
-    checkpass <- TRUE
-  }
-
-  # Execute main function if mandatory arguments are set (otherwise print help message)
-  if (checkpass) { 
-    main(opt)
-  } else {
-    print_help(parser)
-  }
-}
+source("commandR.r")

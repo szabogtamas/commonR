@@ -92,7 +92,7 @@ if (!interactive()) {
 
   # Execute main function if mandatory arguments are set (otherwise print help message)
   if (checkpass) { 
-    do.call(main, opt)
+    main(opt)
   } else {
     print_help(parser)
   }
