@@ -2,7 +2,16 @@
 
 scriptDescription <- "A script that takes a hitlist and shows top gene ontologies"
 
-scriptMandatoryArgs <- c("hitGenes", "outFile")
+scriptMandatoryArgs <- list(
+  hitGenes = list(
+    abbr="-i",
+    help="A comma separated list of genes, usually a hitlist."
+  ),
+  outFile = list(
+    abbr="-o",
+    help="Prefix for output files."
+  )
+)
 
 scriptOptionalArgs <- list(
   plot_title = list(
@@ -35,29 +44,47 @@ suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
 
 if (!interactive()) {
-  # Parse command line options if not sourced
-  parser <- OptionParser(usage=paste0("Purpose: ", scriptDescription, "\nUsage: %prog [options]"))
-  parser <- add_option(parser, c("-v", "--verbose"), action="store_true", default=FALSE,
-                      help="Print some progress messages to stdout.")
-  parser <- add_option(parser, c("-q", "--quietly"), action="store_false", 
-                      dest="verbose", help="Create figures quietly, without printing to stdout.")
-  parser <- add_option(parser, c("-i", "--hitGenes"), default=NULL, 
-                      help="Comma separated list of hit genes.",
-                      metavar="hit_genes")
-  for (rgn in names(scriptOptionalArgs)){
-    rg <- scriptOptionalArgs[[rgn]]
-    rl <- list(
-      parser,
-      paste0("--", rgn)
+  
+  # Initialize parser with verbosity and description of script
+  parser <- OptionParser(usage=paste0("%prog [options]\nDescription:\n  ", scriptDescription))
+  parser <- add_option(
+    parser,
+    c("-v", "--verbose"),
+    action="store_true",
+    default=FALSE,
+    help="Print some progress messages to stdout."
     )
-    rl <- c(rl, rg)
-    parser <- do.call(add_option, rl)
+  parser <- add_option(
+    parser,
+    c("-q", "--quietly"),
+    action="store_false",
+    dest="verbose",
+    help="Create figures quietly, without printing to stdout."
+    )
+
+  # Add arguments to parser
+  an <- 0
+  for al in c(scriptMandatoryArgs, scriptOptionalArgs){
+    for (rgn in names(al)){
+      rg <- al[[rgn]]
+      if (an < 1){
+        rg[["default"]] <- NULL
+      }
+      rga <- paste0("--", rgn)
+      if ("abbr" %in% names(rg) ) {
+        rga <- c(rg[["abbr"]], rga)
+      }
+      rg[["abbr"]] <- NULL
+      rl <- list(parser, rga)
+      rl <- c(rl, rg)
+      parser <- do.call(add_option, rl)
+    }
   }
+
+  # Parse command line options
   opt <- parse_args(parser)
   print(opt)
 }
-
-#TODO: pass default arguments to main function differently if interactive
 
 ### Define a main function that will only be executed if called from command line
 main <- function(hitGenes, ...){
