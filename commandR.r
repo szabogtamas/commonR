@@ -46,25 +46,18 @@ suppressPackageStartupMessages(library(docstring))
 
 ### Define a main function that will only be executed if called from command line
 main <- function(verbose, ...){
-  print(verbose)
-  single_enrichment(...)
+  my_example <- test_helper(...)
+  if(verbose){
+    print(my_example)
+  }
+  
 }
 
-single_enrichment <- function(hitGenes, ...){
+test_helper <- function(hitGenes, ...){
   
-  #' Create a dotplot showing top enriched genes sets (pathways).
-  #' 
-  #' @description ...
-  #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
-  #' @examples
-  #' ...
+  #' Just give back the values supplied via command line, after parsing.
 
   print(hitGenes)
-  print(paste0(hitGenes, "hi"))
 }
 
 if (!interactive()) {
@@ -121,7 +114,12 @@ if (!interactive()) {
           if (rg[["type"]] == "vector") {
             opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
           } else {
-            opt[[rn]] <- unlist(strsplit(opt[[rn]], ":", fixed=TRUE))
+            nl <- list()
+            for (x in unlist(strsplit(opt[[rn]], ":", fixed=TRUE))){
+              x <- unlist(strsplit(x, ",", fixed=TRUE))
+              nl[[x[1]]] <- x[2:length(x)]
+            }
+            opt[[rn]] <- nl
           }
         }
       }
