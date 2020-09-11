@@ -5,7 +5,7 @@ scriptDescription <- "A script that takes a hitlist and shows top gene ontologie
 scriptMandatoryArgs <- list(
   hitGenes = list(
     abbr="-i",
-    type="nested",
+    type="list",
     help="A comma separated list of genes, usually a hitlist."
   ),
   outFile = list(
@@ -41,36 +41,50 @@ scriptOptionalArgs <- list(
   )
 )
 
+opt <- list()
+for (rn in names(scriptOptionalArgs)){
+  opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
+}
+
+
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
 
 ### Define a main function that will only be executed if called from command line
-main <- function(verbose, ...){
-  my_example <- test_helper(...)
+main <- function(verbose, outFile, msig_species, msig_category, msig_subcategory, ...){
+
   if(verbose){
-    print(my_example)
+    cat(paste0("Downloading ", msig_category, "/", msig_subcategory, "for ", msig_species))
   }
-  
-}
-### Define a main function that will only be executed if called from command line
-main <- function(){
   geneSet <-msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
   geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
 
-  enrichment <- single_enrichment(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
-  p1 <- single_enrichdot(enrichment, plot_title=plot_title)
-  p2 <- single_genedot(enrichment)
+  if(verbose){
+    cat("Looking for gene set enrichments")
+  }
+  enrichment <- single_enrichment(...)
 
-  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+  if(verbose){
+    cat("Plotting dotplot of top gene sets")
+  }
+  p1 <- single_enrichdot(enrichment, ...)
+  
+  if(verbose){
+    cat("Plotting dotplot of top genes")
+  }
+  p2 <- single_genedot(enrichment, ...)
 
-  pdf(outFile, height=9.6, width=7.2)
-  print(p)
+  if(verbose){
+    cat("Combining subplots and saving figure")
+  }
+  pdf(paste0(outFile, ".pdf"), height=9.6, width=7.2)
+  plot_grid(p1, p2, nrow=2, labels="AUTO")
   dev.off()
 }
 
-single_enrichment <- function(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff){
+single_enrichment <- function(hitGenes, geneSet, ...){
   
   #' Create a dotplot showing top enriched genes sets (pathways).
   #' 
@@ -82,11 +96,10 @@ single_enrichment <- function(hitGenes, geneSet, pAdjustMethod=pAdjustMethod, qv
   #' @details ...
   #' @examples
   #' ...
-
-  enricher(hitGenes, TERM2GENE=geneSet, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff)
+  enricher(hitGenes, TERM2GENE=geneSet, universe=universe, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff, pvalueCutoff=pvalueCutoff, minGSSize=minGSSize, maxGSSize=maxGSSize)
 }
 
-single_enrichdot <- function(enrichment, plot_title=plot_title){
+single_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
   #' Create a dotplot showing top enriched genes sets (pathways).
   #' 
@@ -287,15 +300,3 @@ if (!interactive()) {
   } else {
     print_help(parser)
   }
-  
-}kpass <- TRUE
-  }
-
-  # Execute main function if mandatory arguments set (otherwise print help message)
-  if ( checkpass ) { 
-    main()
-  } else {
-    print_help(parser)
-  }
-  
-}
