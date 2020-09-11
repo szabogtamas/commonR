@@ -5,6 +5,7 @@ scriptDescription <- "A script that takes a hitlist and shows top gene ontologie
 scriptMandatoryArgs <- list(
   hitGenes = list(
     abbr="-i",
+    type="nested",
     help="A comma separated list of genes, usually a hitlist."
   ),
   outFile = list(
@@ -43,6 +44,28 @@ scriptOptionalArgs <- list(
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
 
+### Define a main function that will only be executed if called from command line
+main <- function(verbose, ...){
+  print(verbose)
+  single_enrichment(...)
+}
+
+single_enrichment <- function(hitGenes, ...){
+  
+  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' 
+  #' @description ...
+  #' 
+  #' @param compLists dataframe. Data to plot 
+  #' @usage ...
+  #' @return ...
+  #' @details ...
+  #' @examples
+  #' ...
+
+  print(paste0(hitGenes, "hi"))
+}
+
 if (!interactive()) {
   
   # Initialize parser with verbosity and description of script
@@ -64,64 +87,41 @@ if (!interactive()) {
 
   # Add arguments to parser
   an <- 0
-  for al in c(scriptMandatoryArgs, scriptOptionalArgs){
+  for (al in list(scriptMandatoryArgs, scriptOptionalArgs)){
     for (rgn in names(al)){
       rg <- al[[rgn]]
       if (an < 1){
         rg[["default"]] <- NULL
       }
+
       rga <- paste0("--", rgn)
       if ("abbr" %in% names(rg) ) {
         rga <- c(rg[["abbr"]], rga)
       }
       rg[["abbr"]] <- NULL
+
       rl <- list(parser, rga)
       rl <- c(rl, rg)
       parser <- do.call(add_option, rl)
+      an <- an +1
     }
   }
 
   # Parse command line options
   opt <- parse_args(parser)
-  print(opt)
-}
 
-### Define a main function that will only be executed if called from command line
-main <- function(hitGenes, ...){
-  single_enrichment(hitGenes)
-}
-
-single_enrichment <- function(hitGenes, ...){
-  
-  #' Create a dotplot showing top enriched genes sets (pathways).
-  #' 
-  #' @description ...
-  #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
-  #' @examples
-  #' ...
-
-  print(paste0(hitGenes, "hi"))
-}
-
-if (!interactive()) {
-  
   # Check if mandatory arguments are present
-  print("hi")
-  if ( is.null(opt$hitGenes) ) { 
-    if ( opt$verbose ) { 
-      write("Sorry, cannot proceed without a data table. Please provide a path to hitlists.\n", stderr())
+  passed_args <- opt[names(scriptMandatoryArgs)]
+  if (any(is.na(names(passed_args)))) {
+    if (opt$verbose) { 
+      write("Sorry, cannot proceed without all mandatory arguments.\n", stderr())
     }
     checkpass <- FALSE
   } else {
     checkpass <- TRUE
   }
 
-  print(checkpass)
-  # Execute main function if mandatory arguments set (otherwise print help message)
+  # Execute main function if mandatory arguments are set (otherwise print help message)
   if ( checkpass ) { 
     do.call(main, opt)
   } else {
