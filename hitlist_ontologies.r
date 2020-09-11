@@ -5,7 +5,7 @@ scriptDescription <- "A script that takes a hitlist and shows top gene ontologie
 scriptMandatoryArgs <- list(
   hitGenes = list(
     abbr="-i",
-    type="list",
+    type="vector",
     help="A comma separated list of genes, usually a hitlist."
   ),
   outFile = list(
@@ -35,9 +35,21 @@ scriptOptionalArgs <- list(
     default="none",
     help="Change this to BH for Bonferroni correction."
   ),
+  pvalueCutoff = list(
+    default=0.05,
+    help="Cut-off for p-values."
+  ),
   qvalueCutoff = list(
     default=1,
     help="An FDR of 0.05 is usually too stringent."
+  ),
+  minGSSize = list(
+    default=10,
+    help="Minimum number of genes in gene set."
+  ),
+  maxGSSize = list(
+    default=500,
+    help="Maximum number of genes in gene set."
   )
 )
 
@@ -46,40 +58,61 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
+if(!("tidyr" %in% (.packages()))){
+  library(tidyr) 
+}
+if(!("dplyr" %in% (.packages()))){
+  library(dplyr) 
+}
+if(!("ggplot2" %in% (.packages()))){
+  library(ggplot2) 
+}
+if(!("cowplot" %in% (.packages()))){
+  library(cowplot) 
+}
+if(!("msigdbr" %in% (.packages()))){
+  library(msigdbr) 
+}
+if(!("clusterProfiler" %in% (.packages()))){
+  library(clusterProfiler) 
+}
 
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
 
 ### Define a main function that will only be executed if called from command line
-main <- function(verbose, outFile, msig_species, msig_category, msig_subcategory, ...){
+main <- function(opt=opt){
+
+  verbose <- opt$verbose
 
   if(verbose){
-    cat(paste0("Downloading ", msig_category, "/", msig_subcategory, "for ", msig_species))
+    print(paste0("Downloading ", opt$msig_category, "/", opt$msig_subcategory, "for ", opt$msig_species))
   }
-  geneSet <-msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
+  geneSet <-msigdbr(species=opt$msig_species, category=opt$msig_category, subcategory=opt$msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
   geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
+  opt$geneSet <- geneSet
 
   if(verbose){
-    cat("Looking for gene set enrichments")
+    print("Looking for gene set enrichments")
   }
-  enrichment <- single_enrichment(...)
+  enrichment <- single_enrichment(opt$hitGenes, geneSet, opt)
 
   if(verbose){
-    cat("Plotting dotplot of top gene sets")
+    print("Plotting dotplot of top gene sets")
   }
-  p1 <- single_enrichdot(enrichment, ...)
+  p1 <- single_enrichdot(enrichment)
   
   if(verbose){
-    cat("Plotting dotplot of top genes")
+    print("Plotting dotplot of top genes")
   }
-  p2 <- single_genedot(enrichment, ...)
+  p2 <- single_genedot(enrichment)
 
   if(verbose){
-    cat("Combining subplots and saving figure")
+    print("Combining subplots and saving figure")
   }
-  pdf(paste0(outFile, ".pdf"), height=9.6, width=7.2)
+  pdf(paste0(opt$outFile, ".pdf"), height=9.6, width=7.2)
   plot_grid(p1, p2, nrow=2, labels="AUTO")
   dev.off()
 }
@@ -96,7 +129,22 @@ single_enrichment <- function(hitGenes, geneSet, ...){
   #' @details ...
   #' @examples
   #' ...
-  enricher(hitGenes, TERM2GENE=geneSet, universe=universe, pAdjustMethod=pAdjustMethod, qvalueCutoff=qvalueCutoff, pvalueCutoff=pvalueCutoff, minGSSize=minGSSize, maxGSSize=maxGSSize)
+  
+  dots <- list(...)
+  ropts <- list()
+  ropts[[1]] <- hitGenes
+  ropts[["TERM2GENE"]] <- geneSet
+  ropts[["universe"]] <- unique(geneSet$gene_symbol)
+  for (rg in c("pAdjustMethod", "pvalueCutoff", "qvalueCutoff", "minGSSize", "maxGSSize")){
+    if (rg %in% names(dots)){
+      ropts[[rg]] <- dots[[rg]]
+    } else {
+      if (rg %in% names(opt)){
+        ropts[[rg]] <- opt[[rg]]
+      }
+    }
+  }
+  do.call(enricher, ropts)
 }
 
 single_enrichdot <- function(enrichment, plot_title=opt$plot_title){
@@ -296,7 +344,8 @@ if (!interactive()) {
 
   # Execute main function if mandatory arguments are set (otherwise print help message)
   if (checkpass) { 
-    do.call(main, opt)
+    main(opt)
   } else {
     print_help(parser)
   }
+}
