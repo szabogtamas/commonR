@@ -1,64 +1,9 @@
 #!/usr/bin/env Rscript
 
-scriptDescription <- "A script that takes a hitlist and shows top gene ontologies"
-
-scriptMandatoryArgs <- list(
-  hitGenes = list(
-    abbr="-i",
-    type="nested",
-    help="A comma separated list of genes, usually a hitlist."
-  ),
-  outFile = list(
-    abbr="-o",
-    help="Prefix for output files."
-  )
-)
-
-scriptOptionalArgs <- list(
-  plot_title = list(
-    default='Top gene sets',
-    help="Title to be put over the first subfigure."
-  ),
-  msig_species = list(
-    default="Mus musculus",
-    help="Organism name where to look for gene symbols."
-  ),
-  msig_category = list(
-    default="C5",
-    help="Main division of MSigDB."
-  ),
-  msig_subcategory = list(
-    default="BP",
-    help="Subdivision of MSigDB."
-  ),
-  pAdjustMethod = list(
-    default="none",
-    help="Change this to BH for Bonferroni correction."
-  ),
-  qvalueCutoff = list(
-    default=1,
-    help="An FDR of 0.05 is usually too stringent."
-  )
-)
+# Interface to command line based on optparse, but extending it with lists and dataframes
 
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
-
-### Define a main function that will only be executed if called from command line
-main <- function(verbose, ...){
-  my_example <- test_helper(...)
-  if(verbose){
-    print(my_example)
-  }
-  
-}
-
-test_helper <- function(hitGenes, ...){
-  
-  #' Just give back the values supplied via command line, after parsing.
-
-  print(hitGenes)
-}
 
 if (!interactive()) {
   
@@ -97,6 +42,9 @@ if (!interactive()) {
       if ("type" %in% names(rg) ) {
         rg[["type"]] <- NULL
       }
+      if ("readoptions" %in% names(rg) ) {
+        rg[["readoptions"]] <- NULL
+      }
 
       rl <- list(parser, rga)
       rl <- c(rl, rg)
@@ -110,16 +58,21 @@ if (!interactive()) {
   for (rn in names(c(scriptMandatoryArgs, scriptOptionalArgs))){
     rg <- c(scriptMandatoryArgs, scriptOptionalArgs)[[rn]]
     if ("type" %in% names(rg) ) {
-        if (rg[["type"]] %in% c("vector", "nested") ) {
+        if (rg[["type"]] %in% c("vector", "nested", "table") ) {
           if (rg[["type"]] == "vector") {
             opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
           } else {
-            nl <- list()
-            for (x in unlist(strsplit(opt[[rn]], ":", fixed=TRUE))){
-              x <- unlist(strsplit(x, ",", fixed=TRUE))
-              nl[[x[1]]] <- x[2:length(x)]
+            if (rg[["type"]] == "nested") {
+              nl <- list()
+              for (x in unlist(strsplit(opt[[rn]], ":", fixed=TRUE))){
+                x <- unlist(strsplit(x, ",", fixed=TRUE))
+                nl[[x[1]]] <- x[2:length(x)]
+              }
+              opt[[rn]] <- nl
+            } else {
+              opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
             }
-            opt[[rn]] <- nl
+            
           }
         }
       }
