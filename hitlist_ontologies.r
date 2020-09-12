@@ -102,7 +102,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
     }
     geneSet <- download_ontologies()
   }
-  
+
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
@@ -234,14 +234,14 @@ single_genedot <- function(enrichment){
   
   #' Create a dotplot showing top enriched genes sets (pathways).
   #' 
-  #' @description ...
+  #' @description The top gene sets are scanned for hit genes, until 25 hit genes are collected. Membership of these top genes is shown in top gene sets.
   #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
+  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
+  #' @usage single_genedot(enrichment)
+  #' @return ggplot
+  #' @details Dot size shows how many genes the gene set consists of. Color shows how gene sets linked to a certain gene ranked.
   #' @examples
-  #' ...
+  #' single_genedot(enrichment)
 
   topenr <- enrichment@result[1:30, c("ID", "p.adjust", "BgRatio", "geneID")]
     rownames(topenr) <- topenr$ID
