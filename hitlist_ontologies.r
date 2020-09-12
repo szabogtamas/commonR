@@ -233,6 +233,18 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
 }
 
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
+  
+  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' 
+  #' @description ...
+  #' 
+  #' @param compLists dataframe. Data to plot 
+  #' @usage ...
+  #' @return ...
+  #' @details ...
+  #' @examples
+  #' ...
+
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
@@ -241,6 +253,18 @@ download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt
 }
 
 create_empty_result_object <- function(){
+  
+  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' 
+  #' @description ...
+  #' 
+  #' @param compLists dataframe. Data to plot 
+  #' @usage ...
+  #' @return ...
+  #' @details ...
+  #' @examples
+  #' ...
+  
   mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
   emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
   return(emptyRes)
