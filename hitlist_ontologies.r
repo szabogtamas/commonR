@@ -58,7 +58,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler")){
+for (pk in c("tidyr", "dplyr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -80,12 +80,12 @@ main <- function(opt){
     if(opt$verbose){
       cat("Multiple hitlists supplied. Plotting comparison on common plot")
     }
-    p <- do.call(plot_enrichment_for_multiple, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
+    p <- do.call(plot_enrichment_for_multiple_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   } else {
     if(opt$verbose){
       cat("Single hitlists supplied.")
     }
-    p <- do.call(plot_enrichment_for_single, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
+    p <- do.call(plot_enrichment_for_single_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   }
 
   cat("Saving figure")
@@ -102,7 +102,7 @@ download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt
   return(geneSet)
 }
 
-plot_enrichment_for_single <- function(hitGenes, geneSet=download_ontologies(), verbose=TRUE, ...){
+plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=download_ontologies(), verbose=TRUE, ...){
 
   if(verbose){
     cat("Looking for gene set enrichments\n")
@@ -116,12 +116,44 @@ plot_enrichment_for_single <- function(hitGenes, geneSet=download_ontologies(), 
   p1 <- single_enrichdot(enrichment)
   
   if(verbose){
-    print("Plotting dotplot of top genes\n")
+    cat("Plotting dotplot of top genes\n")
   }
   p2 <- single_genedot(enrichment)
 
   if(verbose){
-    print("Combining subplots and saving figure\n")
+    cat("Combining subplots and saving figure\n")
+  }
+  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+  return(p)
+}
+
+plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=download_ontologies(), verbose=TRUE, ...){
+
+  if(verbose){
+    cat("Creating empty compareCluster object\n")
+  }
+
+  mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
+  emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
+  
+  if(verbose){
+    cat("Looking for gene set enrichments\n")
+  }
+  hitGenes <- unlist(hitGenes)
+  enrichment <- single_enrichment(hitGenes, geneSet, ...)
+
+  if(verbose){
+    cat("Plotting dotplot of top gene sets\n")
+  }
+  p1 <- single_enrichdot(enrichment)
+  
+  if(verbose){
+    cat("Plotting dotplot of top genes\n")
+  }
+  p2 <- single_genedot(enrichment)
+
+  if(verbose){
+    cat("Combining subplots and saving figure\n")
   }
   p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
   return(p)
@@ -260,4 +292,4 @@ plotMultipleEnrichments <- function(
   return(richPlot)
 }
 
-source("commandR.r")
+source("/home/szabo/dev_packages/commonR/commandR.r")
