@@ -275,49 +275,4 @@ single_genedot <- function(enrichment){
     theme(axis.text.x=element_text(size=8, angle=30, hjust=1), legend.position="bottom")
 }
 
-plotMultipleEnrichments <- function(
-  compLists
-)
-{
-  #' Create a dotplot showing top enriched genes sets (pathways).
-  #' 
-  #' @description ...
-  #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
-  #' @examples
-  #' ...
-  
-  geneSet <-msigdbr(species="Homo sapiens", category="C5", subcategory="BP")
-    compNames <- c('Array Cancer Up', 'Array Cancer Down')
-    compLists <- list(rownames(tops[tops$adj.P.Val < 0.05 & tops$logFC > 0 ,]), rownames(tops[tops$adj.P.Val < 0.05 & tops$logFC < 0 ,]))
-    richRes <- data.frame(Cluster=c(), group=c(), ID=c(), Description=c(), GeneRatio=c(), BgRatio=c(), pvalue=c(), p.adjust=c(), qvalue=c(), geneID=c(), Count=c())
-    for (i in 1:length(compNames)){
-    compname <- compNames[[i]]
-    hitGenes <- unique(compLists[[i]])
-    compname <- paste0(compname, ' (', length(hitGenes), ')')
-    compNames[[i]] <- compname
-    enrichment <- enricher(hitGenes, TERM2GENE=geneSet[,c('gs_name', 'gene_symbol')], universe=bgrdGenes)
-    erik <- head(enrichment@result, n=25)
-    erik$Cluster <- rep(compname, nrow(erik))
-    erik$group <- rep(compname, nrow(erik))
-    richRes <- rbind(erik, richRes)
-    }
-    richRes <- richRes[order(richRes$p.adjust), ]
-    richRes$Count <- (as.numeric(unlist(strsplit(richRes$GeneRatio, '/'))) / as.numeric(unlist(strsplit(richRes$BgRatio, '/'))))[seq(1, length(richRes$GeneRatio)*2, 2)]
-    richRes$Count <- richRes$Count * 100
-    richRes$Description <- gsub('GO_', '', richRes$Description)
-    richRes$Description <- gsub('_', ' ', richRes$Description)
-    compRes <- duplicate(emptyRes)
-    richRes$group <- factor(richRes$group, levels=compNames)
-    richRes$Cluster <- factor(richRes$Cluster, levels=compNames)
-    compRes@compareClusterResult <- richRes
-    richPlot <- clusterProfiler::dotplot(compRes, showCategory=10, by='count') + labs(title='Gene ontologies linked to hit genes')
-    richPlot <- richPlot + scale_color_gradientn(colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')), breaks=c(0.05, 0.01, 0.001, 0.0001), limits=c(0.00001, 1), trans='log10', oob = scales::squish) + theme(axis.text.x=element_text(angle=30, hjust=1)) + scale_size_area(name='Percent\nin gene set')
-
-  return(richPlot)
-}
-
 source("/home/szabo/dev_packages/commonR/commandR.r")
