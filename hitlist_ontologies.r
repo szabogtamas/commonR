@@ -78,24 +78,31 @@ main <- function(opt){
 
   if (length(opt$hitGenes) > 1){
     if(opt$verbose){
-      cat("Multiple hitlists supplied. Plotting comparison on common plot")
+      cat("Multiple hitlists supplied. Plotting comparison on common plot\n")
     }
     p <- do.call(plot_enrichment_for_multiple_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   } else {
     if(opt$verbose){
-      cat("Single hitlists supplied.")
+      cat("Single hitlists supplied\n")
     }
     p <- do.call(plot_enrichment_for_single_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   }
 
-  cat("Saving figure")
+  cat("Saving figure\n")
   pdf(paste0(outFile, ".pdf"), height=9.6, width=7.2)
   print(p)
   dev.off()
 }
 
-plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=download_ontologies(), verbose=TRUE, ...){
+plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=TRUE, ...){
 
+  if(is.null(geneSet)){
+    if(verbose){
+      cat("Downloading deafault ontology set\n")
+    }
+    geneSet <- download_ontologies()
+  }
+  
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
