@@ -159,20 +159,18 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
     erik$group <- rep(compname, nrow(erik))
     richRes <- rbind(erik, richRes)
     }
-    richRes <- richRes[order(richRes$p.adjust), ]
-    richRes$Count <- (as.numeric(unlist(strsplit(richRes$GeneRatio, '/'))) / as.numeric(unlist(strsplit(richRes$BgRatio, '/'))))[seq(1, length(richRes$GeneRatio)*2, 2)]
-    richRes$Count <- richRes$Count * 100
-    richRes$Description <- gsub('GO_', '', richRes$Description)
-    richRes$Description <- gsub('_', ' ', richRes$Description)
-    compRes <- duplicate(emptyRes)
-    richRes$group <- factor(richRes$group, levels=compNames)
-    richRes$Cluster <- factor(richRes$Cluster, levels=compNames)
-    compRes@compareClusterResult <- richRes
-    richPlot <- clusterProfiler::dotplot(compRes, showCategory=10, by='count') + labs(title='Gene ontologies linked to hit genes')
-    richPlot <- richPlot + scale_color_gradientn(colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')), breaks=c(0.05, 0.01, 0.001, 0.0001), limits=c(0.00001, 1), trans='log10', oob = scales::squish) + theme(axis.text.x=element_text(angle=30, hjust=1)) + scale_size_area(name='Percent\nin gene set')
+  richRes <- richRes[order(richRes$p.adjust), ]
+  richRes$Count <- (as.numeric(unlist(strsplit(richRes$GeneRatio, '/'))) / as.numeric(unlist(strsplit(richRes$BgRatio, '/'))))[seq(1, length(richRes$GeneRatio)*2, 2)]
+  richRes$Count <- richRes$Count * 100
+  richRes$Description <- gsub('GO_', '', richRes$Description)
+  richRes$Description <- gsub('_', ' ', richRes$Description)
+  compRes <- duplicate(emptyRes)
+  richRes$group <- factor(richRes$group, levels=compNames)
+  richRes$Cluster <- factor(richRes$Cluster, levels=compNames)
+  compRes@compareClusterResult <- richRes
+  return(compRes)
+}
 
-  return(richPlot)
-  
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
