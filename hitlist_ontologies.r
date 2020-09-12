@@ -94,14 +94,6 @@ main <- function(opt){
   dev.off()
 }
 
-download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
-  geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
-  geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
-  geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
-  geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
-  return(geneSet)
-}
-
 plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=download_ontologies(), verbose=TRUE, ...){
 
   if(verbose){
@@ -127,13 +119,21 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=download_ontolo
   return(p)
 }
 
-plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=download_ontologies(), verbose=TRUE, ...){
-  #TODO: make this a separate function and let an already created one be supplied
-  if(verbose){
-    cat("Creating empty compareCluster object\n")
+plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...){
+  
+  if(is.null(geneSet)){
+    if(verbose){
+      cat("Downloading deafault ontology set\n")
+    }
+    geneSet <- download_ontologies()
   }
-  mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
-  emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
+  
+  if(is.null(emptyRes)){
+    if(verbose){
+      cat("Creating empty compareCluster object\n")
+    }
+    emptyRes <- create_empty_result_object()
+  }
   richRes <- data.frame(Cluster=c(), group=c(), ID=c(), Description=c(), GeneRatio=c(), BgRatio=c(), pvalue=c(), p.adjust=c(), qvalue=c(), geneID=c(), Count=c())
   
   if(verbose){
@@ -165,6 +165,20 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=download_onto
     richPlot <- richPlot + scale_color_gradientn(colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')), breaks=c(0.05, 0.01, 0.001, 0.0001), limits=c(0.00001, 1), trans='log10', oob = scales::squish) + theme(axis.text.x=element_text(angle=30, hjust=1)) + scale_size_area(name='Percent\nin gene set')
 
   return(richPlot)
+  
+download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
+  geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
+  geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
+  geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
+  geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
+  return(geneSet)
+}
+
+create_empty_result_object <- function(){
+  mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
+  emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
+  return(emptyRes)
+}
 
 single_enrichment <- function(hitGenes, geneSet, ...){
   
