@@ -67,6 +67,13 @@ for (pk in c("tidyr", "dplyr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler
 ### Define a main function that will only be executed if called from command line
 main <- function(opt){
   
+  #' The main function of the script, executed only if called from command line.
+  #' Calls subfunctions according to supplied command line arguments.
+  #' 
+  #' @param opt list. a named list of all command line options; will be passed on 
+  #' 
+  #' @return Not intended to return enything, but rather save outputs to files.
+  
   outFile <- opt$outFile
   opt$outFile <- NULL
   opt$help <- NULL
