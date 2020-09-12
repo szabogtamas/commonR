@@ -102,6 +102,27 @@ main <- function(opt){
 }
 
 plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=TRUE, ...){
+  
+  #' Create a one-page figure showing top enriched genes sets (pathways) for a single gene set.
+  #' 
+  #' @description Downoads gene set information from MSigDB for a given species, runs
+  #' overrepresentation analysis and compiles a figure with 2 subplots: dotplot of gene
+  #' sets and dotplot showing gene set membership for top (best known) genes.
+  #' 
+  #' @param hitGenes character vector. A vector of gene symbols to be queried.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param verbose logical. Whether progress messages should be printed.
+  #' @param ... ellipse. Arguments to be passed on to the enricher function.
+  #' @usage plot_enrichment_for_single_hitlist(hitGenes, geneSet=NULL, verbose=TRUE, ...)
+  #' @return ggplot
+  #' @details Dotplot of gene sets show top enriched gene sets. Color corresponds to
+  #' significance, while size shows gene count in hit list. Dotplot of gene set mebership
+  #' features dot where genes belong to a given gene set. Size corresponds to gene set size.
+  #' @examples
+  #' plot_enrichment_for_single_hitlist(hitGenes)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, verbose=FALSE)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, verbose=FALSE, pAdjustMethod="BH")
 
   if(is.null(geneSet)){
     if(verbose){
@@ -135,6 +156,27 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
 
 plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...){
   
+  #' Create a one-page figure showing top enriched multiple sets (pathways) for a single gene set.
+  #' 
+  #' @description Downoads gene set information from MSigDB for a given species, runs
+  #' overrepresentation analysis and compiles a figure with 2 subplots: dotplot of gene
+  #' sets and dotplot showing gene set membership for top (best known) genes.
+  #' 
+  #' @param hitGenes character vector. A vector of gene symbols to be queried.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param verbose logical. Whether progress messages should be printed.
+  #' @param ... ellipse. Arguments to be passed on to the enricher function.
+  #' @usage plot_enrichment_for_single_hitlist(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...)
+  #' @return ggplot
+  #' @details Dotplot of gene sets show top enriched gene sets. Color corresponds to
+  #' significance, while size shows gene count in hit list. Dotplot of gene set mebership
+  #' features dot where genes belong to a given gene set. Size corresponds to gene set size.
+  #' @examples
+  #' plot_enrichment_for_single_hitlist(hitGenes)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, emptyRes, verbose=FALSE)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, emptyRes=NULL, verbose=FALSE, pAdjustMethod="BH")
+  
   if(is.null(geneSet)){
     if(verbose){
       cat("Downloading deafault ontology set\n")
@@ -148,7 +190,19 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
     }
     emptyRes <- create_empty_result_object()
   }
-  richRes <- data.frame(Cluster=c(), group=c(), ID=c(), Description=c(), GeneRatio=c(), BgRatio=c(), pvalue=c(), p.adjust=c(), qvalue=c(), geneID=c(), Count=c())
+  richRes <- data.frame(
+    Cluster=c(),
+    group=c(),
+    ID=c(),
+    Description=c(),
+    GeneRatio=c(),
+    BgRatio=c(),
+    pvalue=c(),
+    p.adjust=c(),
+    qvalue=c(),
+    geneID=c(),
+    Count=c()
+    )
   
   if(verbose){
     cat("Looking for gene set enrichments\n")
