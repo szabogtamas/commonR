@@ -5,14 +5,7 @@ RUN install2.r --error \
     --deps TRUE \
     devtools \
     rlang \
-    optparse \
-    docstring \
-    survival \
-    survminer \
-    msigdbr \
-    pheatmap \
-    ggplotify \
-    cowplot
+    optparse
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
