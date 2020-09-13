@@ -361,13 +361,15 @@ single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
   #' single_hitlist_enrichdot(enrichment)
   #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
 
-  clusterProfiler::dotplot(enrichment, showCategory=30) +
+topsets <- rownames(enrichment@result)[1:30]
+clusterProfiler::dotplot(enrichment, showCategory=30) +
   labs(title=plot_title) +
   scale_color_gradientn(
     colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
     breaks=c(0.05, 0.01, 0.001, 0.0001),
     limits=c(0.00001, 1), trans='log10', oob = scales::squish
   ) +
+  scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
   theme(
     axis.text.x=element_text(angle=30, hjust=1),
     axis.text.y=element_text(size=8)
@@ -419,7 +421,12 @@ single_hitlist_genedot <- function(enrichment){
     geom_point(aes(size=GeneSetSize, color=genePriority)) +
     scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
     scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
-    theme(axis.text.x=element_text(size=8, angle=30, hjust=1), legend.position="bottom")
+    theme(
+      axis.text.x=element_text(size=8, angle=30, hjust=1),
+      legend.position="bottom",
+      legend.justification = c(0,1),
+      legend.margin = margin(l=-90, r=90, unit="pt")
+    )
 }
 
-source("/home/szabo/dev_packages/commonR/commandR.r")
+source("commandR.r")
