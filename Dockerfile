@@ -5,11 +5,13 @@ RUN install2.r --error \
     --deps TRUE \
     devtools \
     rlang \
-    optparse
+    optparse \
+    pheatmap \
+    ggplotify \
+    cowplot
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
-RUN R -e "devtools::install_github('kassambara/ggpubr')"
 
 ADD ./ /commonR
