@@ -6,9 +6,11 @@ RUN install2.r --error \
     devtools \
     rlang \
     optparse \
-    pheatmap \
-    ggplotify \
-    cowplot
+    docstring \
+    survival \
+    survminer \
+    msigdbr \
+    pheatmap
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
