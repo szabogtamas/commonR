@@ -216,7 +216,7 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   if(verbose){
     cat("Plotting dotplot of top genes\n")
   }
-  p2 <- single_hitlist_genedot(enrichment)
+  p2 <- multi_hitlist_genedot(enrichment)
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
@@ -458,7 +458,8 @@ single_hitlist_genedot <- function(enrichment){
     scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
     scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
     theme(
-      axis.text.x=element_text(size=8, angle=30, hjust=1),
+      axis.text.x=element_text(size=7, angle=30, hjust=1),
+      axis.text.y=element_text(size=8),
       legend.position="bottom",
       legend.justification = c(0,1),
       legend.margin = margin(l=-90, r=90, unit="pt")
@@ -481,7 +482,7 @@ multi_hitlist_genedot <- function(enrichment){
   #' @examples
   #' multi_hitlist_genedot(enrichment)
 
-  topenr <- compRes@compareClusterResult %>%
+  topenr <- enrichment@compareClusterResult %>%
     .[!duplicated(.$ID), ] %>%
     .[1:30, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
     `rownames<-`(.$ID)
@@ -495,7 +496,7 @@ multi_hitlist_genedot <- function(enrichment){
     }
   }
 
-  geneFuns <- compRes@compareClusterResult %>%
+  geneFuns <- enrichment@compareClusterResult %>%
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
     transform(score = seq(length(detailedsets), 1, -1)) %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
@@ -513,7 +514,8 @@ multi_hitlist_genedot <- function(enrichment){
     scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
     scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
     theme(
-      axis.text.x=element_text(size=8, angle=30, hjust=1),
+      axis.text.x=element_text(size=7, angle=30, hjust=1),
+      axis.text.y=element_text(size=8),
       legend.position="bottom",
       legend.justification = c(0,1),
       legend.margin = margin(l=-90, r=90, unit="pt")
