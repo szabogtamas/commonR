@@ -140,7 +140,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=
     cat("Looking for gene set enrichments\n")
   }
   hitGenes <- unlist(hitGenes)
-  enrichment <- single_hitlist_enrichment(hitGenes, geneSet, ...)
+  enrichment <- single_hitlist_enrichment(hitGenes, geneSet, universe, ...)
 
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
@@ -219,7 +219,7 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
-  enrichment <- multi_hitlist_enrichment(hitGenes, geneSet, emptyRes, ...)
+  enrichment <- multi_hitlist_enrichment(hitGenes, geneSet, emptyRes, universe, ...)
 
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
@@ -299,10 +299,7 @@ single_hitlist_enrichment <- function(hitGenes, geneSet, ...){
   #' single_enrichment(hitGenes, geneSet, ...)
   #' single_enrichment(hitGenes, geneSet, pAdjustMethod="BH")
 
-  if(is.null(universe)){
-    universe <- unique(geneSet$gene_symbol)
-  }
-  clusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, universe=universe, ...)
+  clusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, ...)
 }
 
 multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
@@ -330,7 +327,7 @@ multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
     hitGenIt <- unique(hitGenes[[compname]])
     compname <- paste0(compname, ' (', length(hitGenIt), ')')
     compNames[[i]] <- compname
-    enrichment <- single_enrichment(hitGenes, geneSet, ...)
+    enrichment <- single_hitlist_enrichment(hitGenes, geneSet, ...)
     erik <- head(enrichment@result, n=20)
     erik$Cluster <- rep(compname, nrow(erik))
     erik$group <- rep(compname, nrow(erik))
@@ -377,7 +374,7 @@ single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
   )
 }
 
-single_genedot <- function(enrichment){
+single_hitlist_genedot <- function(enrichment){
   
   #' Create a dotplot showing gene set membership of top (best known) genes.
   #' 
