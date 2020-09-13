@@ -211,18 +211,18 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <- single_hitlist_enrichdot(enrichment)
+  p1 <- multi_hitlist_enrichdot(enrichment)
   
   if(verbose){
     cat("Plotting dotplot of top genes\n")
   }
-  #p2 <- single_hitlist_genedot(enrichment)
+  p2 <- single_hitlist_genedot(enrichment)
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
   }
-  #p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
-  return(p1)
+  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+  return(p)
 }
 
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
@@ -320,7 +320,7 @@ multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
     geneID=c(),
     Count=c()
     )
-    
+
   compNames <- list()
   i <- 0
   for (compname in names(hitGenes)){
@@ -350,7 +350,7 @@ single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
   #' Create a dotplot showing top enriched gene sets (pathways).
   #' 
-  #' @description A ClusterProfiler enrichment result is visaulized as dotplot. 
+  #' @description A ClusterProfiler enrichment result is visualized as dotplot. 
   #' 
   #' @param enrichment. Result of  clusterProfiler::enricher.
   #' @param plot_title string. Title of the figure.
@@ -377,6 +377,41 @@ clusterProfiler::dotplot(enrichment, showCategory=30) +
   )
 }
 
+multi_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
+
+  #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
+  #' 
+  #' @description A ClusterProfiler enrichment result for multiple hitlists is visualized
+  #' side-by-side, as dotplot. 
+  #' 
+  #' @param enrichment. Result of clusterProfiler::enricher.
+  #' @param plot_title string. Title of the figure.
+  #' @usage single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+  #' @return ggplot
+  #' @details Color corresponds to significance, while size shows gene count in hit list.
+  
+  #' @examples
+  #' single_hitlist_enrichdot(enrichment)
+  #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+
+resulTab <- enrichment@compareClusterResult
+topsets <- rownames(resulTab[!duplicated(resulTab$ID), ])[1:30]
+hitnames <- levels(resulTab$group)
+clusterProfiler::dotplot(enrichment, showCategory=30) +
+  labs(title=plot_title) +
+  scale_color_gradientn(
+    colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
+    breaks=c(0.05, 0.01, 0.001, 0.0001),
+    limits=c(0.00001, 1), trans='log10', oob = scales::squish
+  ) +
+  scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
+  scale_x_discrete(name="", labels=hitnames) +
+  theme(
+    axis.text.x=element_text(angle=30, hjust=1),
+    axis.text.y=element_text(size=8)
+  )
+}
+
 single_hitlist_genedot <- function(enrichment){
   
   #' Create a dotplot showing gene set membership of top (best known) genes.
@@ -385,13 +420,13 @@ single_hitlist_genedot <- function(enrichment){
   #' collected. Membership of these top genes is shown in top gene sets.
   #' 
   #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
-  #' @usage single_genedot(enrichment)
+  #' @usage single_hitlist_genedot(enrichment)
   #' @return ggplot
   #' @details Dot size shows how many genes the gene set consists of. Color shows how 
   #' gene sets linked to a certain gene ranked.
  
   #' @examples
-  #' single_genedot(enrichment)
+  #' single_hitlist_genedot(enrichment)
 
   topenr <- enrichment@result[1:30, c("ID", "p.adjust", "BgRatio", "geneID")]
     rownames(topenr) <- topenr$ID
@@ -406,6 +441,61 @@ single_hitlist_genedot <- function(enrichment){
     }
 
   geneFuns <- enrichment@result %>%
+    .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
+    transform(score = seq(length(detailedsets), 1, -1)) %>%
+    transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
+    transform(GeneSetSize = as.numeric(BgRatio)) %>%
+    transform(geneID = as.character(geneID)) %>%
+    transform(geneID = strsplit(geneID, "/")) %>%
+    unnest(geneID) %>%
+    group_by(geneID) %>%
+    add_tally(wt=score) %>%
+    mutate(genePriority = n) %>%
+    arrange(desc(n))
+
+  ggplot(data=geneFuns, aes(geneID, ID)) +
+    geom_point(aes(size=GeneSetSize, color=genePriority)) +
+    scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
+    scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
+    theme(
+      axis.text.x=element_text(size=8, angle=30, hjust=1),
+      legend.position="bottom",
+      legend.justification = c(0,1),
+      legend.margin = margin(l=-90, r=90, unit="pt")
+    )
+}
+
+multi_hitlist_genedot <- function(enrichment){
+  
+  #' Create a dotplot showing gene set membership of top (best known) genes.
+  #' 
+  #' @description The top gene sets of multi-comparison are scanned for hit genes, until
+  #' 25 hit genes are collected. Membership of these top genes is shown in top gene sets.
+  #' 
+  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
+  #' @usage multi_hitlist_genedot(enrichment)
+  #' @return ggplot
+  #' @details Dot size shows how many genes the gene set consists of. Color shows how 
+  #' gene sets linked to a certain gene ranked.
+ 
+  #' @examples
+  #' multi_hitlist_genedot(enrichment)
+
+  topenr <- compRes@compareClusterResult %>%
+    .[!duplicated(.$ID), ] %>%
+    .[1:30, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
+    `rownames<-`(.$ID)
+
+  detailedsets <- c()
+  detailedgenes <- c()
+  for (geneset in rownames(topenr)){
+    if(length(detailedgenes) < 25){
+      detailedgenes <- unique(c(detailedgenes, unlist(strsplit(topenr[geneset, "geneID"], "/"))))
+      detailedsets <- c(detailedsets, geneset)
+    }
+  }
+
+  geneFuns <- compRes@compareClusterResult %>%
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
     transform(score = seq(length(detailedsets), 1, -1)) %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
