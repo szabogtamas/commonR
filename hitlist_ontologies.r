@@ -202,19 +202,6 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
     }
     emptyRes <- create_empty_result_object()
   }
-  richRes <- data.frame(
-    Cluster=c(),
-    group=c(),
-    ID=c(),
-    Description=c(),
-    GeneRatio=c(),
-    BgRatio=c(),
-    pvalue=c(),
-    p.adjust=c(),
-    qvalue=c(),
-    geneID=c(),
-    Count=c()
-    )
   
   if(verbose){
     cat("Looking for gene set enrichments\n")
@@ -320,6 +307,20 @@ multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
   #' single_enrichment(hitGenes, geneSet, emptyRes)
   #' single_enrichment(hitGenes, geneSet, emptyRes, pAdjustMethod="BH")
 
+  richRes <- data.frame(
+    Cluster=c(),
+    group=c(),
+    ID=c(),
+    Description=c(),
+    GeneRatio=c(),
+    BgRatio=c(),
+    pvalue=c(),
+    p.adjust=c(),
+    qvalue=c(),
+    geneID=c(),
+    Count=c()
+    )
+    
   compNames <- list()
   i <- 0
   for (compname in names(hitGenes)){
@@ -327,7 +328,7 @@ multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
     hitGenIt <- unique(hitGenes[[compname]])
     compname <- paste0(compname, ' (', length(hitGenIt), ')')
     compNames[[i]] <- compname
-    enrichment <- single_hitlist_enrichment(hitGenes, geneSet, ...)
+    enrichment <- single_hitlist_enrichment(hitGenIt, geneSet, ...)
     erik <- head(enrichment@result, n=20)
     erik$Cluster <- rep(compname, nrow(erik))
     erik$group <- rep(compname, nrow(erik))
@@ -429,4 +430,5 @@ single_hitlist_genedot <- function(enrichment){
     )
 }
 
+# Ensuring command line connectivity by sourcing an argument parser
 source("commandR.r")
