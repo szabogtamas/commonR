@@ -280,19 +280,25 @@ create_empty_result_object <- function(){
 
 single_enrichment <- function(hitGenes, geneSet, ...){
   
-  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' Do overrepresentation analysis for a single gene list with ClusterProfiler.
   #' 
-  #' @description ...
+  #' @description Needs a gene list and a knowledge set of gene ontology memberships to
+  #' to do ORA. Extra arguments will be passed on to ClusterProfiler::enricher
   #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
-  #' @examples
-  #' ...
+  #' @param hitGenes character vector. A vector of gene symbols to be queried.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::enricher.
+  #' @usage single_enrichment(hitGenes, geneSet, ...)
+  #' @return enrichment result
 
-  universe <- unique(geneSet$gene_symbol)
-  enricher(hitGenes, TERM2GENE=geneSet, universe=universe, ...)
+  #' @examples
+  #' single_enrichment(hitGenes, geneSet, ...)
+  #' single_enrichment(hitGenes, geneSet, pAdjustMethod="BH")
+
+  if(is.null(universe)){
+    universe <- unique(geneSet$gene_symbol)
+  }
+  ClusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, universe=universe, ...)
 }
 
 single_enrichdot <- function(enrichment, plot_title=opt$plot_title){
