@@ -101,7 +101,7 @@ main <- function(opt){
   dev.off()
 }
 
-plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=TRUE, ...){
+plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=NULL, verbose=TRUE, ...){
   
   #' Create a one-page figure showing top enriched genes sets (pathways) for a single gene set.
   #' 
@@ -131,6 +131,10 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
     }
     geneSet <- download_ontologies()
   }
+  
+  if(is.null(universe)){
+    universe <- unique(geneSet$gene_symbol)
+  }
 
   if(verbose){
     cat("Looking for gene set enrichments\n")
@@ -155,7 +159,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
   return(p)
 }
 
-plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...){
+plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRes=NULL, universe=NULL, verbose=TRUE, ...){
   
   #' Create a one-page figure showing top enriched gene sets (pathways) for mulitple gene sets.
   #' 
@@ -165,6 +169,8 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   #' 
   #' @param hitGenes character vector. A vector of gene symbols to be queried.
   #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
+  #' @param universe character vector. All genes in the organism.
   #' @param verbose logical. Whether progress messages should be printed.
   #' @param ... ellipse. Arguments to be passed on to the enricher function.
   #' @usage plot_enrichment_for_single_hitlist(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...)
@@ -184,6 +190,10 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
       cat("Downloading deafault ontology set\n")
     }
     geneSet <- download_ontologies()
+  }
+
+  if(is.null(universe)){
+    universe <- unique(geneSet$gene_symbol)
   }
   
   if(is.null(emptyRes)){
@@ -209,29 +219,23 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
-  compNames <- list()
-  i <- 0
-  for (compname in names(hitGenes)){
-    i <- i + 1
-    hitGenIt <- unique(hitGenes[[compname]])
-    compname <- paste0(compname, ' (', length(hitGenIt), ')')
-    compNames[[i]] <- compname
-    enrichment <- single_enrichment(hitGenes, geneSet, ...)
-    erik <- head(enrichment@result, n=20)
-    erik$Cluster <- rep(compname, nrow(erik))
-    erik$group <- rep(compname, nrow(erik))
-    richRes <- rbind(erik, richRes)
-    }
-  richRes <- richRes[order(richRes$p.adjust), ]
-  richRes$Count <- (as.numeric(unlist(strsplit(richRes$GeneRatio, '/'))) / as.numeric(unlist(strsplit(richRes$BgRatio, '/'))))[seq(1, length(richRes$GeneRatio)*2, 2)]
-  richRes$Count <- richRes$Count * 100
-  richRes$Description <- gsub('GO_', '', richRes$Description)
-  richRes$Description <- gsub('_', ' ', richRes$Description)
-  compRes <- duplicate(emptyRes)
-  richRes$group <- factor(richRes$group, levels=compNames)
-  richRes$Cluster <- factor(richRes$Cluster, levels=compNames)
-  compRes@compareClusterResult <- richRes
-  return(compRes)
+  enrichment <- multi_hitlist_enrichment(hitGenes, geneSet, emptyRes, ...)
+
+  if(verbose){
+    cat("Plotting dotplot of top gene sets\n")
+  }
+  p1 <- single_hitlist_enrichdot(enrichment)
+  
+  if(verbose){
+    cat("Plotting dotplot of top genes\n")
+  }
+  #p2 <- single_hitlist_genedot(enrichment)
+
+  if(verbose){
+    cat("Combining subplots and saving figure\n")
+  }
+  #p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+  return(p1)
 }
 
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
@@ -301,6 +305,49 @@ single_hitlist_enrichment <- function(hitGenes, geneSet, ...){
   clusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, universe=universe, ...)
 }
 
+multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
+  
+  #' Do overrepresentation analysis for multiple gene lists with ClusterProfiler.
+  #' 
+  #' @description Takes a nested gene list and a knowledge set of gene ontology
+  #' memberships to to do ORA.
+  #' 
+  #' @param hitGenes character vector. A vector of gene symbols to be queried.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
+  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::enricher.
+  #' @usage single_enrichment(hitGenes, geneSet, ...)
+  #' @return enrichment result
+
+  #' @examples
+  #' single_enrichment(hitGenes, geneSet, emptyRes)
+  #' single_enrichment(hitGenes, geneSet, emptyRes, pAdjustMethod="BH")
+
+  compNames <- list()
+  i <- 0
+  for (compname in names(hitGenes)){
+    i <- i + 1
+    hitGenIt <- unique(hitGenes[[compname]])
+    compname <- paste0(compname, ' (', length(hitGenIt), ')')
+    compNames[[i]] <- compname
+    enrichment <- single_enrichment(hitGenes, geneSet, ...)
+    erik <- head(enrichment@result, n=20)
+    erik$Cluster <- rep(compname, nrow(erik))
+    erik$group <- rep(compname, nrow(erik))
+    richRes <- rbind(erik, richRes)
+    }
+  richRes <- richRes[order(richRes$p.adjust), ]
+  richRes$Count <- (as.numeric(unlist(strsplit(richRes$GeneRatio, '/'))) / as.numeric(unlist(strsplit(richRes$BgRatio, '/'))))[seq(1, length(richRes$GeneRatio)*2, 2)]
+  richRes$Count <- richRes$Count * 100
+  richRes$Description <- gsub('GO_', '', richRes$Description)
+  richRes$Description <- gsub('_', ' ', richRes$Description)
+  compRes <- duplicate(emptyRes)
+  richRes$group <- factor(richRes$group, levels=compNames)
+  richRes$Cluster <- factor(richRes$Cluster, levels=compNames)
+  compRes@compareClusterResult <- richRes
+  return(compRes)
+}
+
 single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
   #' Create a dotplot showing top enriched gene sets (pathways).
@@ -332,14 +379,17 @@ single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
 single_genedot <- function(enrichment){
   
-  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' Create a dotplot showing gene set membership of top (best known) genes.
   #' 
-  #' @description The top gene sets are scanned for hit genes, until 25 hit genes are collected. Membership of these top genes is shown in top gene sets.
+  #' @description The top gene sets are scanned for hit genes, until 25 hit genes are
+  #' collected. Membership of these top genes is shown in top gene sets.
   #' 
   #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
   #' @usage single_genedot(enrichment)
   #' @return ggplot
-  #' @details Dot size shows how many genes the gene set consists of. Color shows how gene sets linked to a certain gene ranked.
+  #' @details Dot size shows how many genes the gene set consists of. Color shows how 
+  #' gene sets linked to a certain gene ranked.
+ 
   #' @examples
   #' single_genedot(enrichment)
 
