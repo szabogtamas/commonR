@@ -9,10 +9,10 @@ RUN install2.r --error \
     survminer \
     msigdbr \
     pheatmap \
-    EnhancedVolcano \
     ggpubr \
     ggplotify \
     cowplot
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
+RUN R -e "BiocManager::install('EnhancedVolcano')"
