@@ -136,17 +136,17 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
     cat("Looking for gene set enrichments\n")
   }
   hitGenes <- unlist(hitGenes)
-  enrichment <- single_enrichment(hitGenes, geneSet, ...)
+  enrichment <- single_hitlist_enrichment(hitGenes, geneSet, ...)
 
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <- single_enrichdot(enrichment)
+  p1 <- single_hitlist_enrichdot(enrichment)
   
   if(verbose){
     cat("Plotting dotplot of top genes\n")
   }
-  p2 <- single_genedot(enrichment)
+  p2 <- single_hitlist_genedot(enrichment)
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
@@ -278,12 +278,12 @@ create_empty_result_object <- function(){
   return(emptyRes)
 }
 
-single_enrichment <- function(hitGenes, geneSet, ...){
+single_hitlist_enrichment <- function(hitGenes, geneSet, ...){
   
   #' Do overrepresentation analysis for a single gene list with ClusterProfiler.
   #' 
   #' @description Needs a gene list and a knowledge set of gene ontology memberships to
-  #' to do ORA. Extra arguments will be passed on to ClusterProfiler::enricher
+  #' to do ORA. Extra arguments will be passed on to clusterProfiler::enricher
   #' 
   #' @param hitGenes character vector. A vector of gene symbols to be queried.
   #' @param geneSet dataframe. Gene set membership of genes.
@@ -298,21 +298,24 @@ single_enrichment <- function(hitGenes, geneSet, ...){
   if(is.null(universe)){
     universe <- unique(geneSet$gene_symbol)
   }
-  ClusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, universe=universe, ...)
+  clusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, universe=universe, ...)
 }
 
-single_enrichdot <- function(enrichment, plot_title=opt$plot_title){
+single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
-  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' Create a dotplot showing top enriched gene sets (pathways).
   #' 
-  #' @description ...
+  #' @description A ClusterProfiler enrichment result is visaulized as dotplot. 
   #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
+  #' @param enrichment. Result of  clusterProfiler::enricher.
+  #' @param plot_title string. Title of the figure.
+  #' @usage single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+  #' @return ggplot
+  #' @details Color corresponds to significance, while size shows gene count in hit list.
+  
   #' @examples
-  #' ...
+  #' single_hitlist_enrichdot(enrichment)
+  #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
 
   clusterProfiler::dotplot(enrichment, showCategory=30) +
   labs(title=plot_title) +
