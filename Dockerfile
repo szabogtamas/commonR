@@ -11,7 +11,6 @@ RUN install2.r --error \
     survminer \
     msigdbr \
     pheatmap \
-    ggpubr \
     ggplotify \
     cowplot
 
@@ -19,3 +18,5 @@ RUN install2.r --error \
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
 RUN R -e "devtools::install_github('kassambara/ggpubr')"
+
+ADD ./ /commonR
