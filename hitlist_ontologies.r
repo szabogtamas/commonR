@@ -118,6 +118,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
   #' @details Dotplot of gene sets show top enriched gene sets. Color corresponds to
   #' significance, while size shows gene count in hit list. Dotplot of gene set mebership
   #' features dot where genes belong to a given gene set. Size corresponds to gene set size.
+  
   #' @examples
   #' plot_enrichment_for_single_hitlist(hitGenes)
   #' plot_enrichment_for_single_hitlist(hitGenes, geneSet)
@@ -156,7 +157,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, verbose=T
 
 plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...){
   
-  #' Create a one-page figure showing top enriched multiple sets (pathways) for a single gene set.
+  #' Create a one-page figure showing top enriched gene sets (pathways) for mulitple gene sets.
   #' 
   #' @description Downoads gene set information from MSigDB for a given species, runs
   #' overrepresentation analysis and compiles a figure with 2 subplots: dotplot of gene
@@ -171,11 +172,12 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   #' @details Dotplot of gene sets show top enriched gene sets. Color corresponds to
   #' significance, while size shows gene count in hit list. Dotplot of gene set mebership
   #' features dot where genes belong to a given gene set. Size corresponds to gene set size.
+  
   #' @examples
   #' plot_enrichment_for_single_hitlist(hitGenes)
   #' plot_enrichment_for_single_hitlist(hitGenes, geneSet)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, emptyRes, verbose=FALSE)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, emptyRes=NULL, verbose=FALSE, pAdjustMethod="BH")
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, emptyRes)
+  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, verbose=TRUE, pAdjustMethod="BH")
   
   if(is.null(geneSet)){
     if(verbose){
@@ -234,16 +236,21 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
 
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
   
-  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' Download gene ontologies: a knowledge set is downloaded from MSigDB.
   #' 
-  #' @description ...
+  #' @description Downloeds gene ontologies (primarily the "Biological Process" section)
+  #' as a dataframe, prettifies ontology names and removes extra columns not needed for
+  #' the enrichment analysis.
   #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
+  #' @param msig_species string. Species for mapping gene symbols. 
+  #' @param msig_category string. The section of MSigDB. 
+  #' @param msig_subcategory string. A subsection of MSigDB. 
+  #' @usage download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
+  #' @return data frame with gene ontology membership of gene symbols
+
   #' @examples
-  #' ...
+  #' download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
+  #' download_ontologies()
 
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
@@ -254,16 +261,17 @@ download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt
 
 create_empty_result_object <- function(){
   
-  #' Create a dotplot showing top enriched genes sets (pathways).
+  #' Create a ClusterProfile result object that will be extended with multi-enrichement
+  #' result of our actual comparison.
   #' 
-  #' @description ...
+  #' @description This "empty" mock object is needed because the dotplot method only
+  #' accepts dedicated objects.
   #' 
-  #' @param compLists dataframe. Data to plot 
-  #' @usage ...
-  #' @return ...
-  #' @details ...
+  #' @usage create_empty_result_object()
+  #' @return ClusterProfile result object
+
   #' @examples
-  #' ...
+  #' create_empty_result_object()
   
   mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
   emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
