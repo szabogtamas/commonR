@@ -10,7 +10,8 @@ RUN install2.r --error \
     survival \
     survminer \
     msigdbr \
-    pheatmap
+    pheatmap \
+    cowplot
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
