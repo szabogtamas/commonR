@@ -483,34 +483,29 @@ multi_hitlist_genedot <- function(enrichment){
   #' multi_hitlist_genedot(enrichment)
 
   topenr <- enrichment@compareClusterResult %>%
-    .[!duplicated(.$ID), ] %>%
-    .[1:30, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
-    `rownames<-`(.$ID)
+    .[.$ID %in% .$ID[!duplicated(.$ID)][1:30], ] %>%
+    .[, c("ID", "p.adjust", "BgRatio", "geneID")]
 
   detailedsets <- c()
   detailedgenes <- c()
-  for (geneset in rownames(topenr)){
+  for (geneset in unique(topenr$ID)){
     if(length(detailedgenes) < 25){
-      detailedgenes <- unique(c(detailedgenes, unlist(strsplit(topenr[geneset, "geneID"], "/"))))
+      setDats <- topenr[topenr$ID == geneset, "geneID"]
+      detailedgenes <- unique(c(detailedgenes, unlist(sapply(setDats, strsplit, "/"))))
       detailedsets <- c(detailedsets, geneset)
     }
   }
 
   geneFuns <- enrichment@compareClusterResult %>%
-    .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
-    transform(score = seq(length(detailedsets), 1, -1)) %>%
+    .[, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
-    unnest(geneID) %>%
-    group_by(geneID) %>%
-    add_tally(wt=score) %>%
-    mutate(genePriority = n) %>%
-    arrange(desc(n))
+    unnest(geneID)
 
   ggplot(data=geneFuns, aes(geneID, ID)) +
-    geom_point(aes(size=GeneSetSize, color=genePriority)) +
+    geom_point(aes(size=GeneSetSize, color=group)) +
     scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
     scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
     theme(
