@@ -10,11 +10,12 @@ RUN install2.r --error \
     survival \
     survminer \
     msigdbr \
-    pheatmap \
-    ggplotify
+    pheatmap
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
+RUN R -e "devtools::install_github('GuangchuangYu/scatterpie')"
+RUN R -e "devtools::install_github('kassambara/ggpubr')"
 
 ADD ./ /commonR
