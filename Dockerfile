@@ -17,6 +17,6 @@ RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
 RUN R -e "BiocManager::install('cowplot')"
 RUN R -e "devtools::install_github('GuangchuangYu/scatterpie')"
-RUN R -e "library('ggpubr')"
+RUN R -e "devtools::install_github('GuangchuangYu/ggplotify')"
 
 ADD ./ /commonR
