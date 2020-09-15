@@ -507,10 +507,12 @@ multi_hitlist_genedot <- function(enrichment){
     transform(geneSet = as.numeric(as.factor(ID))) %>%
     unnest(geneID)
 
-  ggplot(data=geneFuns, aes(geneID, ID)) +
-    geom_point(aes(size=GeneSetSize, color=group)) +
-    scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
-    scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
+  ggplot() +
+    geom_scatterpie(aes(x=gene, y=geneSet, r=log(GeneSetSize/100)), data=geneFuns, cols=cohort_order) +
+    geom_scatterpie_legend(geneFuns$GeneSetSize, x=5, y=5) +
+    scale_x_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=gene)$geneID)), labels = unique(arrange(geneFuns, by=gene)$geneID), "")) +
+    scale_y_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=geneSet)$ID)), labels = unique(arrange(geneFuns, by=geneSet)$ID), "")) +
+    coord_equal() +
     theme(
       axis.text.x=element_text(size=7, angle=30, hjust=1),
       axis.text.y=element_text(size=8),
@@ -518,13 +520,6 @@ multi_hitlist_genedot <- function(enrichment){
       legend.justification = c(0,1),
       legend.margin = margin(l=-90, r=90, unit="pt")
     )
-
-  ggplot() +
-    geom_scatterpie(aes(x=gene, y=geneSet, r=log(GeneSetSize/100)), data=geneFuns, cols=cohort_order) +
-    geom_scatterpie_legend(geneFuns$GeneSetSize, x=5, y=5) +
-    scale_x_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=gene)$geneID)), labels = unique(arrange(geneFuns, by=gene)$geneID), "")) +
-    scale_y_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=geneSet)$ID)), labels = unique(arrange(geneFuns, by=geneSet)$ID), "")) +
-    coord_equal()
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
