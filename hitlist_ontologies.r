@@ -521,9 +521,10 @@ multi_hitlist_genedot <- function(enrichment){
 
   ggplot() +
     geom_scatterpie(aes(x=gene, y=geneSet, r=log(GeneSetSize/100)), data=geneFuns, cols=cohort_order) +
+    geom_scatterpie_legend(geneFuns$GeneSetSize, x=5, y=5) +
     scale_x_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=gene)$geneID)), labels = unique(arrange(geneFuns, by=gene)$geneID), "")) +
-    scale_y_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=geneSet)$ID)), labels = unique(arrange(geneFuns, by=geneSet)$ID), ""))
-```
+    scale_y_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=geneSet)$ID)), labels = unique(arrange(geneFuns, by=geneSet)$ID), "")) +
+    coord_equal()
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
