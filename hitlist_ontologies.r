@@ -496,12 +496,15 @@ multi_hitlist_genedot <- function(enrichment){
     }
   }
 
-  geneFuns <- enrichment@compareClusterResult %>%
+  geneFuns <- tmprRes %>%
     .[, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
+    transform(group = as.factor(group), levels=cohort_order) %>%
+    transform(gene = as.numeric(as.factor(geneID))) %>%
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
+    transform(geneSet = as.numeric(as.factor(ID))) %>%
     unnest(geneID)
 
   ggplot(data=geneFuns, aes(geneID, ID)) +
@@ -515,6 +518,12 @@ multi_hitlist_genedot <- function(enrichment){
       legend.justification = c(0,1),
       legend.margin = margin(l=-90, r=90, unit="pt")
     )
+
+  ggplot() +
+    geom_scatterpie(aes(x=gene, y=geneSet, r=log(GeneSetSize/100)), data=geneFuns, cols=cohort_order) +
+    scale_x_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=gene)$geneID)), labels = unique(arrange(geneFuns, by=gene)$geneID), "")) +
+    scale_y_continuous(breaks=seq(1, length(unique(arrange(geneFuns, by=geneSet)$ID)), labels = unique(arrange(geneFuns, by=geneSet)$ID), ""))
+```
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
