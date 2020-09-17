@@ -58,7 +58,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "ggplot2", "ggplotify", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
+for (pk in c("tidyr", "dplyr", "ggplot2", "ggplotify", "cowplot", "scatterpie", "msigdbr", "clusterProfiler", "rlang")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
