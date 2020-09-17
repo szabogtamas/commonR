@@ -466,7 +466,7 @@ single_hitlist_genedot <- function(enrichment){
     )
 }
 
-multi_hitlist_genedot <- function(enrichment){
+multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
   
   #' Create a dotplot showing gene set membership of top (best known) genes.
   #' 
@@ -482,6 +482,10 @@ multi_hitlist_genedot <- function(enrichment){
   #' @examples
   #' multi_hitlist_genedot(enrichment)
 
+  if(is.null(cohort_order)){
+    cohort_order <- unique(as.character(enrichment@compareClusterResult$group))
+  }
+
   topenr <- enrichment@compareClusterResult %>%
     .[.$ID %in% .$ID[!duplicated(.$ID)][1:30], ] %>%
     .[, c("ID", "p.adjust", "BgRatio", "geneID")]
@@ -496,8 +500,8 @@ multi_hitlist_genedot <- function(enrichment){
     }
   }
 
-  geneFuns <- tmprRes %>%
-    .[, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
+  geneFuns <- enrichment@result %>%
+    .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
     transform(ScaledGeneSetSize = log10(GeneSetSize)) %>%
