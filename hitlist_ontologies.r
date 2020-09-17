@@ -482,11 +482,13 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
   #' @examples
   #' multi_hitlist_genedot(enrichment)
 
+  
+  enrichment <- enrichment@compareClusterResult
   if(is.null(cohort_order)){
-    cohort_order <- unique(as.character(enrichment@compareClusterResult$group))
+    cohort_order <- unique(as.character(enrichment$group))
   }
 
-  topenr <- enrichment@compareClusterResult %>%
+  topenr <- enrichment %>%
     .[.$ID %in% .$ID[!duplicated(.$ID)][1:30], ] %>%
     .[, c("ID", "p.adjust", "BgRatio", "geneID")]
 
@@ -500,7 +502,7 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
     }
   }
 
-  geneFuns <- enrichment@result %>%
+  geneFuns <- enrichment %>%
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
