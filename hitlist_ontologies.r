@@ -507,7 +507,7 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
     transform(ScaledGeneSetSize = log10(GeneSetSize)) %>%
-    transform(ScaledGeneSetSize = ScaledGeneSetSize/min(ScaledGeneSetSize, na.rm=TRUE)) %>%
+    transform(ScaledGeneSetSize = ScaledGeneSetSize/min(ScaledGeneSetSize, na.rm=TRUE)/5) %>%
     transform(group = as.factor(group), levels=cohort_order) %>%
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
@@ -521,8 +521,8 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
   ggplot() +
     geom_scatterpie(aes(x=gene, y=geneSet, r=ScaledGeneSetSize), data=geneFuns, cols=cohort_order) +
     scale_x_continuous(breaks=seq(1, length(unique(geneFuns$geneID))), labels = unique(arrange(geneFuns, by=gene)$geneID), "") +
-    scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "")
-    geom_scatterpie_legend(geneFuns$GeneSetSize, x=5, y=5) +
+    scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "") +
+    #geom_scatterpie_legend(geneFuns$ScaledGeneSetSize, x=1, y=1) +
     coord_equal() +
     theme(
       axis.text.x=element_text(size=7, angle=30, hjust=1),
