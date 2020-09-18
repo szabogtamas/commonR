@@ -524,6 +524,7 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
     scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "") +
     #geom_scatterpie_legend(geneFuns$ScaledGeneSetSize, x=1, y=1) +
     scale_colour_manual(values = c("red", "blue", "green"), aesthetics="fill", name="") +
+    scale_fill_viridis(discrete = TRUE, name="") +
     coord_equal() +
     theme(
       axis.text.x=element_text(size=7, angle=30, hjust=1),
