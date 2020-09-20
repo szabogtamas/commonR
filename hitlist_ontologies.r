@@ -505,8 +505,8 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
-    transform(ScaledGeneSetSize = log10(GeneSetSize)) %>%
-    transform(ScaledGeneSetSize = ScaledGeneSetSize/min(ScaledGeneSetSize, na.rm=TRUE)/6) %>%
+    transform(ScaledGeneSetSize = log10(GeneSetSize)/5) %>%
+    transform(ScaledGeneSetSize = ScaledGeneSetSize/max(ScaledGeneSetSize, na.rm=TRUE)) %>%
     transform(group = as.factor(group), levels=cohort_order) %>%
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
