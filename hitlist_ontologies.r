@@ -537,4 +537,4 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
-source("commandR.r")
+source("/commonR/commandR.r")
