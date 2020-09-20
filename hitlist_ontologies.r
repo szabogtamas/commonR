@@ -511,26 +511,29 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
     unnest(geneID) %>%
-    transform(geneSet = as.numeric(factor(ID, levels=detailedsets))) %>%
+    transform(geneSet = as.numeric(factor(ID, levels=rev(detailedsets)))) %>%
     transform(gene = as.numeric(factor(geneID, levels=detailedgenes))) %>%
     transform(cnt = 1) %>%
     pivot_wider(values_from=cnt, names_from=group, values_fill=0)
 
   ggplot() +
     geom_scatterpie(aes(x=gene, y=geneSet, r=ScaledGeneSetSize), data=geneFuns, cols=cohort_order) +
-    scale_x_continuous(breaks=rev(seq(1, length(unique(geneFuns$geneID)))), labels = rev(unique(arrange(geneFuns, by=gene)$geneID)), "") +
-    scale_y_continuous(breaks=rev(seq(1, length(unique(geneFuns$ID)))), labels = rev(unique(arrange(geneFuns, by=geneSet)$ID)), "") +
+    scale_x_continuous(breaks=seq(1, length(unique(geneFuns$geneID))), labels =unique(arrange(geneFuns, by=gene)$geneID), "") +
+    scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "") +
     #geom_scatterpie_legend(geneFuns$ScaledGeneSetSize, x=1, y=1) +
     scale_colour_manual(values=colorscheme, aesthetics="fill", name="") +
     coord_equal() +
     theme(
-      axis.text.x=element_text(size=7, angle=30, hjust=1),
+      axis.text.x=element_text(size=6, angle=30, hjust=1),
       axis.text.y=element_text(size=8),
       legend.position="bottom",
       legend.justification = c(0,1),
-      legend.margin = margin(l=-90, r=90, unit="pt")
-    ) +
-    theme_bw()
+      legend.margin = margin(l=-90, r=90, unit="pt"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(colour = "black")
+    )
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
