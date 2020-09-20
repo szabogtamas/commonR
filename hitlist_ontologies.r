@@ -466,7 +466,7 @@ single_hitlist_genedot <- function(enrichment){
     )
 }
 
-multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
+multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666')){
   
   #' Create a dotplot showing gene set membership of top (best known) genes.
   #' 
@@ -481,7 +481,6 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
  
   #' @examples
   #' multi_hitlist_genedot(enrichment)
-
   
   enrichment <- enrichment@compareClusterResult
   if(is.null(cohort_order)){
@@ -523,8 +522,7 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL){
     scale_x_continuous(breaks=seq(1, length(unique(geneFuns$geneID))), labels = unique(arrange(geneFuns, by=gene)$geneID), "") +
     scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "") +
     #geom_scatterpie_legend(geneFuns$ScaledGeneSetSize, x=1, y=1) +
-    scale_colour_manual(values = c("red", "blue", "green"), aesthetics="fill", name="") +
-    scale_fill_viridis(discrete = TRUE, name="") +
+    scale_colour_manual(values=colorscheme, aesthetics="fill", name="") +
     coord_equal() +
     theme(
       axis.text.x=element_text(size=7, angle=30, hjust=1),
