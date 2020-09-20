@@ -514,7 +514,7 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
     transform(geneSet = as.numeric(factor(ID, levels=rev(detailedsets)))) %>%
     transform(gene = as.numeric(factor(geneID, levels=detailedgenes))) %>%
     transform(cnt = 1) %>%
-    pivot_wider(values_from=cnt, names_from=group, values_fill=0)
+    pivot_wider(values_from=cnt, names_from=group, values_fill=list(cnt=0))
 
   ggplot() +
     geom_scatterpie(aes(x=gene, y=geneSet, r=ScaledGeneSetSize), data=geneFuns, cols=cohort_order) +
