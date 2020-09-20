@@ -505,22 +505,21 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
     .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
     transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
     transform(GeneSetSize = as.numeric(BgRatio)) %>%
-    transform(ScaledGeneSetSize = log10(GeneSetSize)/5) %>%
-    transform(ScaledGeneSetSize = ScaledGeneSetSize/max(ScaledGeneSetSize, na.rm=TRUE)) %>%
-    transform(group = as.factor(group), levels=cohort_order) %>%
+    transform(ScaledGeneSetSize = log10(GeneSetSize)) %>%
+    transform(ScaledGeneSetSize = (ScaledGeneSetSize/max(ScaledGeneSetSize, na.rm=TRUE))/2) %>%
+    transform(group = factor(group, levels=cohort_order)) %>%
     transform(geneID = as.character(geneID)) %>%
     transform(geneID = strsplit(geneID, "/")) %>%
-    transform(geneSet = as.numeric(as.factor(ID))) %>%
     unnest(geneID) %>%
-    transform(geneSet = as.numeric(as.factor(ID))) %>%
-    transform(gene = as.numeric(as.factor(geneID))) %>%
+    transform(geneSet = as.numeric(factor(ID, levels=detailedsets))) %>%
+    transform(gene = as.numeric(factor(geneID, levels=detailedgenes))) %>%
     transform(cnt = 1) %>%
     pivot_wider(values_from=cnt, names_from=group, values_fill=0)
 
   ggplot() +
     geom_scatterpie(aes(x=gene, y=geneSet, r=ScaledGeneSetSize), data=geneFuns, cols=cohort_order) +
-    scale_x_continuous(breaks=seq(1, length(unique(geneFuns$geneID))), labels = unique(arrange(geneFuns, by=gene)$geneID), "") +
-    scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "") +
+    scale_x_continuous(breaks=rev(seq(1, length(unique(geneFuns$geneID)))), labels = rev(unique(arrange(geneFuns, by=gene)$geneID)), "") +
+    scale_y_continuous(breaks=rev(seq(1, length(unique(geneFuns$ID)))), labels = rev(unique(arrange(geneFuns, by=geneSet)$ID)), "") +
     #geom_scatterpie_legend(geneFuns$ScaledGeneSetSize, x=1, y=1) +
     scale_colour_manual(values=colorscheme, aesthetics="fill", name="") +
     coord_equal() +
@@ -530,7 +529,8 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
       legend.position="bottom",
       legend.justification = c(0,1),
       legend.margin = margin(l=-90, r=90, unit="pt")
-    )
+    ) +
+    theme_bw()
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
