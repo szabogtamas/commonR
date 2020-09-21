@@ -7,6 +7,7 @@ RUN install2.r --error \
     rlang \
     optparse \
     docstring \
+    xlsx \
     survival \
     survminer \
     msigdbr \
