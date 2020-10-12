@@ -57,7 +57,7 @@ if (!interactive()) {
   opt <- parse_args(parser)
   for (rn in names(c(scriptMandatoryArgs, scriptOptionalArgs))){
     rg <- c(scriptMandatoryArgs, scriptOptionalArgs)[[rn]]
-    if ("type" %in% names(rg) ) {
+    if ("type" %in% names(rg) & !is.null(opt[[rn]])) {
         if (rg[["type"]] %in% c("vector", "nested", "table") ) {
           if (rg[["type"]] == "vector") {
             opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
