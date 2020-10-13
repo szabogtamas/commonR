@@ -98,16 +98,20 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
       (length(conditionOrder)/length(conditionColors))+1
     )
   ]
+  conditionColors <- setNames(conditionColors[1:length(levels(conditions))], levels(conditions))
   
   conditions <- factor(conditionLabels, levels=conditionOrder)
   design <- model.matrix(~conditions)
+  geneDict <- setNames(readCounts[[2]], readCounts[[1]])
 
   ### Use EdgeR for DE analysis
+
   y <- readCounts %>%
-    column_to_rownames(colnames(.)[1]) %>%
-    DGEList(group=conditions) %>%
-    calcNormFactors() %>%
-    estimateDisp(design)
+      column_to_rownames(colnames(.)[1]) %>%
+      .[,-1] %>%
+      DGEList(group=conditions) %>%
+      calcNormFactors() %>%
+      estimateDisp(design)
   
   normalized_counts <- y %>%
   cpm()+1 %>%
@@ -213,7 +217,7 @@ draw_summary_volcano <- function(de_test_result, condition, conditions, geneDict
 }
 
 
-draw_summary_heatmap <- function(de_test_result, condition, conditions, normalized_counts, conditionColors){
+draw_summary_heatmap <- function(de_test_result, condition, conditions, normalized_counts, conditionColors, geneDict){
   
   #' Draws a summary heatmap of the top 50 genes for a pair of conditions (one always 
   #' being control).
@@ -225,24 +229,26 @@ draw_summary_heatmap <- function(de_test_result, condition, conditions, normaliz
   #' @param conditionColors named vector. Color codes for conditions. 
   #' 
   #' @return Hitlists.
-
-  samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
   
+  res <- topTags(de_test_result, n="Inf")
+  samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
   annots <- data.frame(condition=as.character(conditions[samples_to_show]))
   rownames(annots) <- colnames(normalized_counts)[samples_to_show]
   
   normalized_counts  %>%
-    .[rownames(de_test_result$table[1:50,]),samples_to_show] %>%
+    .[rownames(res[1:50,]),samples_to_show] %>%
     pheatmap(
       annotation_col=annots,
       annotation_colors=list(condition=conditionColors),
       annotation_legend=FALSE,
+      labels_row=geneDict[rownames(res[1:50,])],
       show_colnames=TRUE,
       cluster_rows=FALSE,
       color=colorRampPalette(c("white", "grey", "red"))(10),
       breaks=seq(0, 50, 5)
       ) %>%
     as.ggplot()
+}
 }
 
 
