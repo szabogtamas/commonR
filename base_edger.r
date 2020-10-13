@@ -25,6 +25,11 @@ scriptOptionalArgs <- list(
     default=NULL,
     type="vector",
     help="Order of conditions in the experimental design formula. Makes sense to put control as first."
+  ),
+  conditionColors = list(
+    default=NULL,
+    type="vector",
+    help="Colors for points belonging to a given condition on PCA."
   )
 )
 
@@ -39,18 +44,11 @@ for (pk in c("tidyr", "dplyr", "edgeR", "ggplot2", "cowplot", "ggplotify")){
   }
 }
 
-
-### Read command line parameters or use defaults
-
-countfile <- "/home/szabo/myScratch/CrisprScreen/pipelinetesting/intermediates/15_bam_sequences/read_counts_guidelevel.txt"
-
-controlbars <- "GCATGC,CTAGCA,CGTACG,ACTGAC"
-casebars <- "TAGCTA,GACTGA,GATCGT,CTGACT"
-
-controllabel <- "Control"
-caselabel <- "Case"
-
-condition_colors <- "black,red"
+default_colors <- c(
+  '#1a476f', '#90353b', '#55752f', '#e37e00', '#6e8e84', '#c10534',
+  '#938dd2', '#cac27e', '#a0522d', '#7b92a8', '#2d6d66', '#9c8847',
+  '#bfa19c', '#ffd200', '#d9e6eb'
+)
 
 ### Define a main function that will only be executed if called from command line
 main <- function(opt){
@@ -75,14 +73,16 @@ main <- function(opt){
 }
 
 ### The actual working horse, called by main()
-testDE <- function(readCounts, conditionLabels, conditionOrder){
+testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL){
   
-  #' The main function of the script, executed only if called from command line.
-  #' Calls subfunctions according to supplied command line arguments.
+  #' Runs DE analysis with edger on a count matrix. Condition labels should be in the
+  #' order as samples appear in columns.
   #' 
-  #' @param opt list. a named list of all command line options; will be passed on 
+  #' @param readCounts data.frame. The count matrix; first column becoming the index.
+  #' @param conditionLabels character vector. Experimental condition labels. 
+  #' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
   #' 
-  #' @return Not intended to return enything, but rather save outputs to files.
+  #' @return Hitlists.
 
   if(is.null(conditionOrder)){
     conditionOrder = unique(conditionLabels)
@@ -90,24 +90,32 @@ testDE <- function(readCounts, conditionLabels, conditionOrder){
   conditions <- factor(conditionLabels, levels=conditionOrder)
   design <- model.matrix(~conditions)
 
-  ### Deal with colors later!!!
-  condition_colors <- unlist(strsplit(condition_colors, ",", fixed=TRUE))
-  names(condition_colors) <- levels(conditions)
-
+  if (is.null(conditionColors)){
+    conditionColors <- default_colors
+  }
+  conditionColors <- conditionColors[
+    rep(
+      seq(1, length(conditionColors)),
+      (length(conditionOrder)/length(conditionColors))+1
+    )
+  ]
+  
   ### Use EdgeR for DE analysis
   y <- readCounts %>%
-    column_to_rownames(1)
+    column_to_rownames(colnames(.)[1]) %>%
     DGEList(group=conditions) %>%
     calcNormFactors() %>%
     estimateDisp(design)
 
   de_test <- y %>%
     glmFit(design) %>%
-    glmLRT()
-
-  ### Make this a more general case, returning hitlists for all conditions
-  res <- topTags(lrt, n="Inf")$table
-
+    list() %>%
+    rep(length(conditionOrder) - 1) %>%
+    map2(seq(2, length(conditionOrder)), glmLRT) %>%
+    map(topTags, n="Inf") %>%
+    map(pluck, 'table') %>%
+    setNames(conditionOrder[seq(2, length(conditionOrder))])
+    
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
