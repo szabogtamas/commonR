@@ -38,7 +38,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "edgeR", "ggplot2", "cowplot", "ggplotify")){
+for (pk in c("tidyr", "dplyr", "purrr", "tibble", "org.Hs.eg.db", "edgeR", "pheatmap", "ggplot2", "cowplot", "ggplotify")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -115,7 +115,7 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     map(topTags, n="Inf") %>%
     map(pluck, 'table') %>%
     setNames(conditionOrder[seq(2, length(conditionOrder))])
-    
+
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
