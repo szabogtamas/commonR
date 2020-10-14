@@ -186,6 +186,16 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
       cex.lab=0.8,
       cex.axis=0.8,
       mgp=c(1.5,0.5,0)
+    ),
+    legend(
+      "bottomright",
+      legend=unique(conditions), 
+      col=conditionColors[conditions], 
+      pch=19, 
+      bty="n", 
+      pt.cex=1, 
+      cex=0.8,
+      y.intersp=2
     )
   ) %>%
   as.ggplot(vjust=0, scale=1) +
@@ -199,17 +209,31 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
   
   annots <- data.frame(condition=as.character(conditions[colnames(normalized_counts)]))
   rownames(annots) <- colnames(normalized_counts)
-
+  print(annots)
+  
+  max_variances <- normalized_counts %>%
+    apply(1, var) %>%
+    order(decreasing=TRUE) %>%
+    .[1:500]
+  
+  opt_color_breaks <- normalized_counts %>%
+    .[max_variances,]  %>%
+    quantile(seq(0.1, 1, 0.1)) %>%
+    as.numeric()
+    
   p2 <- normalized_counts %>%
+  .[max_variances,]  %>%
   t() %>%
   pheatmap(
-      annotation_col=annots,
+      annotation_row=annots,
       annotation_colors=list(condition=conditionColors),
       annotation_legend=FALSE,
-      show_colnames=TRUE,
-      show_rownames=FALSE,
+      annotation_names_row=FALSE,
+      show_colnames=FALSE,
+      show_rownames=TRUE,
+      treeheight_col=0,
       color=colorRampPalette(c("white", "grey", "red"))(10),
-      breaks=seq(0, 50, 5)
+      breaks=opt_color_breaks
       ) %>%
     as.ggplot()
 
