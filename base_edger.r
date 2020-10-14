@@ -64,12 +64,29 @@ main <- function(opt){
   opt$outFile <- NULL
   opt$help <- NULL
 
-  testDE(opt)
-  cat("Saving figure\n")
-  pdf(paste0(outFile, ".pdf"), height=9.6, width=7.2)
-  print(p)
-  dev.off()
+  cat("Testing DE with EdgeR\n")
+  test_results <- testDEwithEdgeR(opt)
+  cat("Saving tables\n")
+  tablenames = paste0(outFile, names(test_results$tables), ".tsv")
+  map2(
+    test_results$tables,
+    tablenames,
+    write.table,
+    quote=FALSE,
+    sep="\t",
+    row.names=FALSE
+  )
+  cat("Saving figures\n")
+  fignames = paste0(outFile, names(test_results$figures))
+  map2(
+    test_results$figures,
+    fignames,
+    fig2pdf,
+    height=8.64,
+    width=7.2
+  )
 
+  invisible(NULL)
 }
 
 ### The actual working horse, called by main()
@@ -152,6 +169,8 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   p2 <- as.ggplot(expression(plotMDS(y, col=conditionColors[conditions])))
   
   plots[["Summary"]] <- plot_grid(p1, p2, labels="AUTO", nrow=2, rel_heights=c(2, 1))
+
+  invisible(list(figures=plots, tables=restabs))
 }
 
 
@@ -261,6 +280,24 @@ draw_colnames_30 <- function (coln, gaps, ...) {
     return(res)}
 
 assignInNamespace(x="draw_colnames", value="draw_colnames_30", ns=asNamespace("pheatmap"))
+
+
+fig2pdf <- function(figure, filename_base, height, width){
+
+  #' Save a plot, preferably one page, into pdf.
+  #' 
+  #' @param figure plot (ggplot or cowplot). The plot to be saved.
+  #' @param filename_base string. File name, with path and prefix, but no extension. 
+  #' @param height integer. Height of the output canvas.
+  #' @param width integer. Width of the output canvas. 
+  #' 
+  #' @return NULL.
+  
+  pdf(paste0(filename_base, ".pdf"), height=height, width=width)
+  print(figure)
+  dev.off()
+  invisible(NULL)
+}
 
 # Ensuring command line connectivity by sourcing an argument parser
 source("commandR.r")
