@@ -68,7 +68,7 @@ main <- function(opt){
   test_results <- testDEwithEdgeR(opt)
   cat("Saving tables\n")
   geneDict <- test_results$geneDict
-  tablenames = paste0(outFile, names(test_results$tables))
+  tablenames <- paste0(outFile, names(test_results$tables))
   map2(
     test_results$tables,
     tablenames,
@@ -76,7 +76,7 @@ main <- function(opt){
     relabels=geneDict
    ) 
   cat("Saving figures\n")
-  fignames = paste0(outFile, names(test_results$figures))
+  fignames <- paste0(outFile, names(test_results$figures))
   map2(
     test_results$figures,
     fignames,
@@ -123,11 +123,11 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 
   ### Use EdgeR for DE analysis
   y <- readCounts %>%
-      column_to_rownames(colnames(.)[1]) %>%
-      .[,-1] %>%
-      DGEList(group=conditions) %>%
-      calcNormFactors() %>%
-      estimateDisp(design)
+    column_to_rownames(colnames(.)[1]) %>%
+    .[,-1] %>%
+    DGEList(group=conditions) %>%
+    calcNormFactors() %>%
+    estimateDisp(design)
   
   normalized_counts <- y %>%
   cpm()+1 %>%
@@ -156,7 +156,7 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 
   de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
 
-  if(all(geneDict == names(GeneDict))){
+  if(all(geneDict == names(geneDict))){
     geneDict = NULL
   }
 
@@ -209,7 +209,6 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
   
   annots <- data.frame(condition=as.character(conditions[colnames(normalized_counts)]))
   rownames(annots) <- colnames(normalized_counts)
-  print(annots)
   
   max_variances <- normalized_counts %>%
     apply(1, var) %>%
@@ -431,7 +430,8 @@ tab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="Symbo
   }
   original_cols <- c(primary_id, original_cols)
   tab %>% 
-    add_rownames(var=primary_id) %>% 
+    rownames_to_column(var=primary_id) %>% 
+    select(original_cols) %>% 
     write.table(
       paste0(filename_base, ".tsv"),
       quote=FALSE,
