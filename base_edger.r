@@ -67,15 +67,14 @@ main <- function(opt){
   cat("Testing DE with EdgeR\n")
   test_results <- testDEwithEdgeR(opt)
   cat("Saving tables\n")
-  tablenames = paste0(outFile, names(test_results$tables), ".tsv")
+  geneDict <- test_results$geneDict
+  tablenames = paste0(outFile, names(test_results$tables))
   map2(
     test_results$tables,
     tablenames,
-    write.table,
-    quote=FALSE,
-    sep="\t",
-    row.names=FALSE
-  )
+    tab2tsv,
+    relabels=geneDict
+   ) 
   cat("Saving figures\n")
   fignames = paste0(outFile, names(test_results$figures))
   map2(
@@ -101,10 +100,11 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   #' 
   #' @return Hitlists.
 
+  ### Start by parsing inputs and setting some defaults
   if(is.null(conditionOrder)){
     conditionOrder = unique(conditionLabels)
   }
-  conditionDict <- setNames(conditionLabels, colnames(readCounts[-1]))
+  conditionDict <- setNames(conditionLabels, colnames(readCounts[c(-1, -2)]))
 
   if (is.null(conditionColors)){
     conditionColors <- default_colors
@@ -122,7 +122,6 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   geneDict <- setNames(readCounts[[2]], readCounts[[1]])
 
   ### Use EdgeR for DE analysis
-
   y <- readCounts %>%
       column_to_rownames(colnames(.)[1]) %>%
       .[,-1] %>%
@@ -139,47 +138,138 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     list() %>%
     rep(length(conditionOrder) - 1) %>%
     map2(seq(2, length(conditionOrder)), glmLRT) %>%
-    #map(topTags, n="Inf") %>%
-    #map(pluck, 'table') %>%
     setNames(conditionOrder[seq(2, length(conditionOrder))])
   
-  heatmaps <- map2(de_test, names(de_test), draw_summary_heatmap, conditions, normalized_counts, conditionColors)
-  volcanos <- map2(de_test, names(de_test), draw_summary_volcano, conditions, geneDict)
-  mdplots <- map(
-    de_test,
-    plotMD, 
-    main="",
-    legend=FALSE,
-    bty="L", 
-    ex=0.8,
-    cex.lab=0.8,
-    cex.axis=0.8,
-    mgp=c(1.5,0.5,0)
+  de_tables <- de_test %>% 
+    map(topTags, n="Inf") %>%
+    map(pluck, 'table')
+
+  ### Compile a plot for every case (condition)
+  plots <- list(
+    heatm = map2(de_tables, names(de_tables), draw_summary_heatmap, conditions, normalized_counts, conditionColors)
+    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict)
+    mdp = map(de_test, draw_summary_mdplot)
   ) %>%
-    map(expression) %>%
-    map(
-      as.ggplot(vjust=0, scale=1) +
-      theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
-    )
+  pmap(draw_summary_panel)
 
-  plots <- map(seq(1, length(conditionOrder)) %>%
-    plot_grid(plot_grid(p1, p2, p3, labels="AUTO", nrow=3, rel_heights=c(2, 1, 1)), p4, ncol=2, labels=c("", "D"), hjust=0.2)
+  plots[["overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts)
 
-  p1 <- pheatmap(normalized_counts)
-  p2 <- as.ggplot(expression(plotMDS(y, col=conditionColors[conditions])))
-  
-  plots[["Summary"]] <- plot_grid(p1, p2, labels="AUTO", nrow=2, rel_heights=c(2, 1))
+  de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
 
-  invisible(list(figures=plots, tables=restabs))
+  if(all(geneDict == names(GeneDict))){
+    geneDict = NULL
+  }
+
+  invisible(list(figures=plots, tables=de_tables, geneDict=geneDict))
+
 }
 
 
-draw_summary_volcano <- function(de_test_result, condition, conditions, geneDict=NULL, topNgene=25, ...){
+draw_overview_panel <- function(y, conditions, conditionColors, normalized_counts = NULL){
+
+  #' Create an overview figure with a summary heatmap and a PCA plot.
+  #' 
+  #' @param y edgeR matrix. Count matrix in EdgeR after normalization and dispersion calculation.
+  #' @param conditions named vector. All the conditions corresponding to matrix columns.
+  #' @param conditionColors named vector. Color codes for conditions. 
+  #' @param normalized_counts matrix. Counts normalized as logCPM; computed from y if not supplied.
+  #' 
+  #' @return ggplotified EdgeR MD plot.
+
+  y <<- y
+  p1 <- expression(
+    plotMDS(y,
+      col=conditionColors[conditions],
+      main="",
+      bty="L", 
+      cex=0.8,
+      cex.lab=0.8,
+      cex.axis=0.8,
+      mgp=c(1.5,0.5,0)
+    )
+  ) %>%
+  as.ggplot(vjust=0, scale=1) +
+    theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
+  
+  if(is.null(normalized_counts)){
+    normalized_counts <- y %>%
+      cpm()+1 %>%
+      log2()
+  }
+  
+  annots <- data.frame(condition=as.character(conditions[colnames(normalized_counts)]))
+  rownames(annots) <- colnames(normalized_counts)
+
+  p2 <- normalized_counts %>%
+  transpose() %>%
+  pheatmap(
+      annotation_col=annots,
+      annotation_colors=list(condition=conditionColors),
+      annotation_legend=FALSE,
+      show_colnames=TRUE,
+      show_rownames=FALSE,
+      color=colorRampPalette(c("white", "grey", "red"))(10),
+      breaks=seq(0, 50, 5)
+      ) %>%
+    as.ggplot()
+
+  plot_grid(p1, p2, labels="AUTO", nrow=2, rel_heights=c(2, 1))
+  
+}
+
+
+draw_summary_panel <- function(heatm, volcano, mdp){
+
+  #' Create a multifigure panel with volcano and MD on the left and heatmap on the right.
+  #' 
+  #' @param heatm ggplot. Heatmap of top genes in the comparison.
+  #' @param volcano ggplot. Volcano plot summary of the comparison.
+  #' @param mdp ggplot. MD plot for QC purpose.
+  #' 
+  #' @return ggplotified EdgeR MD plot.
+  
+    plot_grid(
+      plot_grid(volcano, mdp, labels="AUTO", nrow=2, rel_heights=c(2, 1)),
+      heatm,
+      ncol=2,
+      labels=c("", "C"),
+      hjust=0.2
+    )
+
+}
+
+
+draw_summary_mdplot <- function(de_test_result){
+
+  #' Draws an MD (mean vs. difference) plot for a given comparison.
+  #' 
+  #' @param de_test_result edgeR result. DE result of comparison for a single coef.
+  #' 
+  #' @return ggplotified EdgeR MD plot.
+  
+  de_test_result <<- de_test_result
+  p <- expression(
+    plotMD(de_test_result,
+      main="",
+      legend=FALSE,
+      bty="L", 
+      cex=0.8,
+      cex.lab=0.8,
+      cex.axis=0.8,
+      mgp=c(1.5,0.5,0)
+    )
+  )
+  as.ggplot(p, vjust=0, scale=1) +
+    theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
+}
+
+
+draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, topNgene=25, ...){
 
   #' Draws a summary volcano plot for showing change for all genes in a given comparison 
   #' of a pair of conditions (one always being control).
   #' 
-  #' @param de_test_result edgeR result. DE result of comparison for a single coef.
+  #' @param result data.frame. Table of DE results after topTags for a single coef.
   #' @param condition string. Experimental condition we want to compare to control. 
   #' @param conditions factor. All the conditions, corresponding.
   #' @param geneDict named vector. Names to be shown if renamed.
@@ -188,7 +278,6 @@ draw_summary_volcano <- function(de_test_result, condition, conditions, geneDict
   #' 
   #' @return Hitlists.
   
-  res <- topTags(de_test_result, n="Inf")$table
   if(is.null(geneDict)){
     res$gene <- rownames(res)
   } else {
@@ -208,7 +297,7 @@ draw_summary_volcano <- function(de_test_result, condition, conditions, geneDict
       ifelse(res$logFC > 2, "#fa3316", "#808080")
     ),
     "#d3d3d3")
-  names(volcano.colors) <- volcano.colors
+  names(volcano.colors) <- rownames(res)
   EnhancedVolcano(
     res,
     lab=res$gene,
@@ -223,7 +312,7 @@ draw_summary_volcano <- function(de_test_result, condition, conditions, geneDict
     selectLab=topResGen,
     drawConnectors=TRUE, colConnectors="grey30", boxedLabels=TRUE,
     gridlines.major=FALSE, gridlines.minor=FALSE,
-    #colCustom = volcano.colors,
+    colCustom = volcano.colors,
     borderWidth = 0.3,
     axisLabSize=10, subtitleLabSize=1, captionLabSize=1,
     ...
@@ -236,12 +325,12 @@ draw_summary_volcano <- function(de_test_result, condition, conditions, geneDict
 }
 
 
-draw_summary_heatmap <- function(de_test_result, condition, conditions, normalized_counts, conditionColors, geneDict){
+draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, conditionColors, geneDict){
   
   #' Draws a summary heatmap of the top 50 genes for a pair of conditions (one always 
   #' being control).
   #' 
-  #' @param de_test_result edgeR result. DE result of comparison for a single coef.
+  #' @param result data.frame. Table of DE results after topTags for a single coef.
   #' @param condition string. Experimental condition we want to compare to control. 
   #' @param conditions factor. All the conditions, corresponding columns in count matrix.
   #' @param normalized_counts matrix. Normalized counts to be shown on the heatmap.
@@ -249,7 +338,6 @@ draw_summary_heatmap <- function(de_test_result, condition, conditions, normaliz
   #' 
   #' @return Hitlists.
   
-  res <- topTags(de_test_result, n="Inf")
   samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
   annots <- data.frame(condition=as.character(conditions[samples_to_show]))
   rownames(annots) <- colnames(normalized_counts)[samples_to_show]
@@ -296,6 +384,37 @@ fig2pdf <- function(figure, filename_base, height, width){
   pdf(paste0(filename_base, ".pdf"), height=height, width=width)
   print(figure)
   dev.off()
+  invisible(NULL)
+}
+
+
+tab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="Symbol", relabels=NULL){
+
+  #' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
+  #' friendly IDs, the second column can be a more readable mapping, provided by relabels.
+  #' 
+  #' @param tab dta.fram. The table to be saved.
+  #' @param filename_base string. File name, with path and prefix, but no extension. 
+  #' @param primary_id string. Column header for row names.
+  #' @param secondary_id string. Column header for second column with human-friendly labels.
+  #' @param relabels named vector. Mapping from IDs to human-friendly labels. 
+  #' 
+  #' @return NULL.
+  
+  original_cols <- colnames(tab)
+  if(!is.null(relabels)){
+    tab[[secondary_id]] <- relabels[rownames(tab)]
+    original_cols <- c(secondary_id, original_cols)
+  }
+  original_cols <- c(primary_id, original_cols)
+  tab %>% 
+    add_rownames(var=primary_id) %>% 
+    write.table(
+      paste0(filename_base, ".tsv"),
+      quote=FALSE,
+      sep="\t",
+      row.names=FALSE
+    )
   invisible(NULL)
 }
 
