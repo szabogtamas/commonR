@@ -38,7 +38,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "purrr", "tibble", "org.Hs.eg.db", "edgeR", "pheatmap", "ggplot2", "cowplot", "ggplotify")){
+for (pk in c("tidyr", "dplyr", "purrr", "tibble", "edgeR", "pheatmap", "EnhancedVolcano", "ggplot2", "cowplot", "ggplotify")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -146,8 +146,8 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 
   ### Compile a plot for every case (condition)
   plots <- list(
-    heatm = map2(de_tables, names(de_tables), draw_summary_heatmap, conditions, normalized_counts, conditionColors)
-    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict)
+    heatm = map2(de_tables, names(de_tables), draw_summary_heatmap, conditions, normalized_counts, conditionColors, geneDict),
+    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict),
     mdp = map(de_test, draw_summary_mdplot)
   ) %>%
   pmap(draw_summary_panel)
@@ -201,7 +201,7 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
   rownames(annots) <- colnames(normalized_counts)
 
   p2 <- normalized_counts %>%
-  transpose() %>%
+  t() %>%
   pheatmap(
       annotation_col=annots,
       annotation_colors=list(condition=conditionColors),
@@ -355,7 +355,6 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
       breaks=seq(0, 50, 5)
       ) %>%
     as.ggplot()
-}
 }
 
 
