@@ -6,7 +6,7 @@ scriptMandatoryArgs <- list(
   readCounts = list(
     abbr="-i",
     type="table",
-    readoptions=list(sep="\t", stringsAsFactors=FALSE)
+    readoptions=list(sep="\t", stringsAsFactors=FALSE),
     help="Table of raw counts. A bit cleaned up: first column is GeneIDs, rest is counts."
   ),
   conditionLabels = list(
