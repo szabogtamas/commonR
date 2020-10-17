@@ -9,6 +9,7 @@ RUN install2.r --error \
     openxlsx \
     survival \
     survminer \
+    edgeR \
     msigdbr \
     pheatmap
 
