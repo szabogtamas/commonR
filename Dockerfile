@@ -9,12 +9,12 @@ RUN install2.r --error \
     openxlsx \
     survival \
     survminer \
-    edgeR \
     msigdbr \
     pheatmap
 
 
 RUN R -e "BiocManager::install('clusterProfiler')"
+RUN R -e "BiocManager::install('edgeR')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
 RUN R -e "BiocManager::install('org.Hs.eg.db')"
 RUN R -e "BiocManager::install('cowplot')"
