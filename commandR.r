@@ -5,6 +5,66 @@
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
 
+### Patching Pheatmap with diagonal column labels;
+### Idea from https://www.thetopsites.net/article/54919955.shtml
+draw_colnames_30 <- function (coln, gaps, ...) {
+    coord = pheatmap:::find_coordinates(length(coln), gaps)
+    x = coord$coord - 0.5 * coord$size
+    res = grid:::textGrob(coln, x = x, y = unit(1, "npc") - unit(3,"bigpts"), vjust = 0.5, hjust = 1, rot = 30, gp = grid:::gpar(...))
+    return(res)}
+
+assignInNamespace(x="draw_colnames", value="draw_colnames_30", ns=asNamespace("pheatmap"))
+
+fig2pdf <- function(figure, filename_base, height, width){
+
+  #' Save a plot, preferably one page, into pdf.
+  #' 
+  #' @param figure plot (ggplot or cowplot). The plot to be saved.
+  #' @param filename_base string. File name, with path and prefix, but no extension. 
+  #' @param height integer. Height of the output canvas.
+  #' @param width integer. Width of the output canvas. 
+  #' 
+  #' @return NULL.
+  
+  pdf(paste0(filename_base, ".pdf"), height=height, width=width)
+  print(figure)
+  dev.off()
+  invisible(NULL)
+}
+
+
+genetab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="Symbol", relabels=NULL){
+
+  #' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
+  #' friendly IDs, the second column can be a more readable mapping, provided by relabels.
+  #' 
+  #' @param tab dta.fram. The table to be saved.
+  #' @param filename_base string. File name, with path and prefix, but no extension. 
+  #' @param primary_id string. Column header for row names.
+  #' @param secondary_id string. Column header for second column with human-friendly labels.
+  #' @param relabels named vector. Mapping from IDs to human-friendly labels. 
+  #' 
+  #' @return NULL.
+  
+  original_cols <- colnames(tab)
+  if(!is.null(relabels)){
+    tab[[secondary_id]] <- relabels[rownames(tab)]
+    original_cols <- c(secondary_id, original_cols)
+  }
+  original_cols <- c(primary_id, original_cols)
+  tab %>% 
+    rownames_to_column(var=primary_id) %>% 
+    select(original_cols) %>% 
+    write.table(
+      paste0(filename_base, ".tsv"),
+      quote=FALSE,
+      sep="\t",
+      row.names=FALSE
+    )
+  invisible(NULL)
+}
+
+
 if (!interactive()) {
   
   # Initialize parser with verbosity and description of script
@@ -45,11 +105,12 @@ if (!interactive()) {
       if ("readoptions" %in% names(rg) ) {
         rg[["readoptions"]] <- NULL
       }
-
+        
       rl <- list(parser, rga)
       rl <- c(rl, rg)
       parser <- do.call(add_option, rl)
       an <- an +1
+      
     }
   }
 
