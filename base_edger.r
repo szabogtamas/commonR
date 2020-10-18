@@ -30,6 +30,10 @@ scriptOptionalArgs <- list(
     default=NULL,
     type="vector",
     help="Colors for points belonging to a given condition on PCA."
+  ),
+  commandRpath = list(
+    default="commandR.r",
+    help="Path to command line connectivity script (if not in cwd)."
   )
 )
 
@@ -63,20 +67,27 @@ main <- function(opt){
   outFile <- opt$outFile
   opt$outFile <- NULL
   opt$help <- NULL
+  opt$verbose <- NULL
 
   cat("Testing DE with EdgeR\n")
-  test_results <- testDEwithEdgeR(opt)
+  test_results <- do.call(testDEwithEdgeR, opt)
   cat("Saving tables\n")
   geneDict <- test_results$geneDict
-  tablenames <- paste0(outFile, names(test_results$tables))
+  tablenames <- test_results$tables %>%
+    names() %>%
+    gsub("/", "___", .) %>%
+    paste0(outFile, .)
   map2(
     test_results$tables,
     tablenames,
-    tab2tsv,
+    genetab2tsv,
     relabels=geneDict
    ) 
   cat("Saving figures\n")
-  fignames <- paste0(outFile, names(test_results$figures))
+  fignames <- test_results$figures %>%
+    names() %>%
+    gsub("/", "___", .) %>%
+    paste0(outFile, .)
   map2(
     test_results$figures,
     fignames,
@@ -89,7 +100,7 @@ main <- function(opt){
 }
 
 ### The actual working horse, called by main()
-testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL){
+testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, ...){
   
   #' Runs DE analysis with edger on a count matrix. Condition labels should be in the
   #' order as samples appear in columns.
@@ -97,6 +108,8 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   #' @param readCounts data.frame. The count matrix; first column becoming the index, second labels.
   #' @param conditionLabels character vector. Experimental condition labels. 
   #' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
+  #' @param conditionColors character vector. Color associated to each experimental condition. 
+  #' @param ... Arguments inherited from command line but not used by this function. 
   #' 
   #' @return Hitlists.
 
@@ -105,7 +118,9 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     conditionOrder = unique(conditionLabels)
   }
   conditionDict <- setNames(conditionLabels, colnames(readCounts[c(-1, -2)]))
-
+    
+  conditions <- factor(conditionLabels, levels=conditionOrder)
+  
   if (is.null(conditionColors)){
     conditionColors <- default_colors
   }
@@ -117,7 +132,6 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   ]
   conditionColors <- setNames(conditionColors[1:length(levels(conditions))], levels(conditions))
   
-  conditions <- factor(conditionLabels, levels=conditionOrder)
   design <- model.matrix(~conditions)
   geneDict <- setNames(readCounts[[2]], readCounts[[1]])
 
@@ -177,9 +191,11 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
   #' @return ggplotified EdgeR MD plot.
 
   y <<- y
+  mds_cls <<- conditionColors[conditions]
+  mds_lvls <<- unique(names(conditionColors))
   p1 <- expression(
     plotMDS(y,
-      col=conditionColors[conditions],
+      col=mds_cls,
       main="",
       bty="L", 
       cex=0.8,
@@ -189,8 +205,8 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
     ),
     legend(
       "bottomright",
-      legend=unique(conditions), 
-      col=conditionColors[conditions], 
+      legend=mds_lvls, 
+      col=mds_cls, 
       pch=19, 
       bty="n", 
       pt.cex=1, 
@@ -380,66 +396,5 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
     as.ggplot()
 }
 
-
-### Patching Pheatmap with diagonal column labels;
-### Idea from https://www.thetopsites.net/article/54919955.shtml
-draw_colnames_30 <- function (coln, gaps, ...) {
-    coord = pheatmap:::find_coordinates(length(coln), gaps)
-    x = coord$coord - 0.5 * coord$size
-    res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3,"bigpts"), vjust = 0.5, hjust = 1, rot = 30, gp = gpar(...))
-    return(res)}
-
-assignInNamespace(x="draw_colnames", value="draw_colnames_30", ns=asNamespace("pheatmap"))
-
-
-fig2pdf <- function(figure, filename_base, height, width){
-
-  #' Save a plot, preferably one page, into pdf.
-  #' 
-  #' @param figure plot (ggplot or cowplot). The plot to be saved.
-  #' @param filename_base string. File name, with path and prefix, but no extension. 
-  #' @param height integer. Height of the output canvas.
-  #' @param width integer. Width of the output canvas. 
-  #' 
-  #' @return NULL.
-  
-  pdf(paste0(filename_base, ".pdf"), height=height, width=width)
-  print(figure)
-  dev.off()
-  invisible(NULL)
-}
-
-
-tab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="Symbol", relabels=NULL){
-
-  #' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
-  #' friendly IDs, the second column can be a more readable mapping, provided by relabels.
-  #' 
-  #' @param tab dta.fram. The table to be saved.
-  #' @param filename_base string. File name, with path and prefix, but no extension. 
-  #' @param primary_id string. Column header for row names.
-  #' @param secondary_id string. Column header for second column with human-friendly labels.
-  #' @param relabels named vector. Mapping from IDs to human-friendly labels. 
-  #' 
-  #' @return NULL.
-  
-  original_cols <- colnames(tab)
-  if(!is.null(relabels)){
-    tab[[secondary_id]] <- relabels[rownames(tab)]
-    original_cols <- c(secondary_id, original_cols)
-  }
-  original_cols <- c(primary_id, original_cols)
-  tab %>% 
-    rownames_to_column(var=primary_id) %>% 
-    select(original_cols) %>% 
-    write.table(
-      paste0(filename_base, ".tsv"),
-      quote=FALSE,
-      sep="\t",
-      row.names=FALSE
-    )
-  invisible(NULL)
-}
-
 # Ensuring command line connectivity by sourcing an argument parser
-source("commandR.r")
+source(opt$commandRpath, local=TRUE)
