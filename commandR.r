@@ -1,5 +1,3 @@
-#!/usr/bin/env Rscript
-
 # Interface to command line based on optparse, but extending it with lists and dataframes
 
 suppressPackageStartupMessages(library(optparse))
