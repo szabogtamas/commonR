@@ -50,6 +50,10 @@ scriptOptionalArgs <- list(
   maxGSSize = list(
     default=500,
     help="Maximum number of genes in gene set."
+  ),
+  commandRpath = list(
+    default="commandR.r",
+    help="Path to command line connectivity script (if not in cwd)."
   )
 )
 
@@ -76,7 +80,18 @@ main <- function(opt){
   
   outFile <- opt$outFile
   opt$outFile <- NULL
+  opt$commandRpath <- NULL
   opt$help <- NULL
+
+  hitGenes <- res$logFC
+  names(hitGenes) <- rownames(res)
+  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
+  enrichment <- GSEA(hitGenes, TERM2GENE=geneSet[,c('gs_name', 'gene_symbol')])
+  richPlot <- clusterProfiler::dotplot(enrichment) + labs(title='Gene ontologies associated with miR-15a/b KO')
+  richPlot <- richPlot + scale_color_gradientn(colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')), breaks=c(0.05, 0.01, 0.001, 0.0001), limits=c(0.00001, 1), trans='log10', oob = scales::squish) + theme(axis.text.x=element_text(angle=30, hjust=1))
+  print(richPlot)
+
+
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
   if(opt$verbose){
@@ -537,4 +552,4 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
-source("/commonR/commandR.r")
+source(opt$commandRpath, local=TRUE)

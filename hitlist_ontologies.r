@@ -10,6 +10,10 @@ scriptMandatoryArgs <- list(
   ),
   outFile = list(
     abbr="-o",
+    help="Base name for output files."
+  ),
+  outPrefix = list(
+    abbr="-p",
     help="Prefix for output files."
   )
 )
@@ -50,6 +54,10 @@ scriptOptionalArgs <- list(
   maxGSSize = list(
     default=500,
     help="Maximum number of genes in gene set."
+  ),
+  commandRpath = list(
+    default="commandR.r",
+    help="Path to command line connectivity script (if not in cwd)."
   )
 )
 
@@ -74,8 +82,10 @@ main <- function(opt){
   #' 
   #' @return Not intended to return anything, but rather save outputs to files.
   
-  outFile <- opt$outFile
+  outFile <- paste0(opt$outPrefix, opt$outFile)
   opt$outFile <- NULL
+  opt$outPrefix <- NULL
+  opt$commandRpath <- NULL
   opt$help <- NULL
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
@@ -537,4 +547,4 @@ multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
-source("/commonR/commandR.r")
+source(opt$commandRpath, local=TRUE)
