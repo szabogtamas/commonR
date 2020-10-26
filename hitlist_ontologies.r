@@ -82,7 +82,8 @@ main <- function(opt){
   #' 
   #' @return Not intended to return anything, but rather save outputs to files.
   
-  outFile <- paste0(opt$outPrefix, opt$outFile)
+  outFile <- paste0(opt$outPrefix, opt$outFile) %>%
+    gsub("/", "___", .)
   opt$outFile <- NULL
   opt$outPrefix <- NULL
   opt$commandRpath <- NULL
@@ -233,20 +234,15 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
     if(verbose){
       cat("Combining subplots and saving figure\n")
     }
-    p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+    plot_grid(p1, p2, nrow=2, labels="AUTO")
 
-  }, warning = function(w) {
-    if(verbose){
-      cat(w)
+    }, error = function(e) {
+      if(verbose){
+        cat(e)
+      }
+      plot_grid(p1, nrow=2, labels="AUTO")
     }
-  }, error = function(e) {
-    if(verbose){
-      cat(e)
-    }
-    p <- plot_grid(p1, nrow=2, labels="AUTO")
-  }, finally = {
-      return(p)
-  }
+  )
   
   return(p)
 }
