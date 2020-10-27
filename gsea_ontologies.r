@@ -1,12 +1,12 @@
 #!/usr/bin/env Rscript
 
-scriptDescription <- "A script that takes a hitlist and shows top gene ontologies"
+scriptDescription <- "A script that takes a DE result with numerical changes under a condition and runs GSEA."
 
 scriptMandatoryArgs <- list(
   hitGenes = list(
     abbr="-i",
-    type="nested",
-    help="A comma separated list of genes, usually a hitlist."
+    type="table",
+    help="A table with unique ID and name as first two column and numeric as rest."
   ),
   outFile = list(
     abbr="-o",
