@@ -10,6 +10,10 @@ scriptMandatoryArgs <- list(
   ),
   outFile = list(
     abbr="-o",
+    help="Base name for output files."
+  ),
+  outPrefix = list(
+    abbr="-p",
     help="Prefix for output files."
   )
 )
@@ -78,20 +82,12 @@ main <- function(opt){
   #' 
   #' @return Not intended to return anything, but rather save outputs to files.
   
-  outFile <- opt$outFile
+  outFile <- paste0(opt$outPrefix, opt$outFile) %>%
+    gsub("/", "___", .)
   opt$outFile <- NULL
+  opt$outPrefix <- NULL
   opt$commandRpath <- NULL
   opt$help <- NULL
-
-  hitGenes <- res$logFC
-  names(hitGenes) <- rownames(res)
-  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
-  enrichment <- GSEA(hitGenes, TERM2GENE=geneSet[,c('gs_name', 'gene_symbol')])
-  richPlot <- clusterProfiler::dotplot(enrichment) + labs(title='Gene ontologies associated with miR-15a/b KO')
-  richPlot <- richPlot + scale_color_gradientn(colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')), breaks=c(0.05, 0.01, 0.001, 0.0001), limits=c(0.00001, 1), trans='log10', oob = scales::squish) + theme(axis.text.x=element_text(angle=30, hjust=1))
-  print(richPlot)
-
-
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
   if(opt$verbose){
@@ -231,12 +227,23 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   if(verbose){
     cat("Plotting dotplot of top genes\n")
   }
-  p2 <- multi_hitlist_genedot(enrichment)
 
-  if(verbose){
-    cat("Combining subplots and saving figure\n")
-  }
-  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
+  p <- tryCatch({
+
+    p2 <- multi_hitlist_genedot(enrichment)
+    if(verbose){
+      cat("Combining subplots and saving figure\n")
+    }
+    plot_grid(p1, p2, nrow=2, labels="AUTO")
+
+    }, error = function(e) {
+      if(verbose){
+        cat(e)
+      }
+      plot_grid(p1, nrow=2, labels="AUTO")
+    }
+  )
+  
   return(p)
 }
 
