@@ -144,8 +144,8 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     estimateDisp(design)
   
   normalized_counts <- y %>%
-  cpm()+1 %>%
-  log2()
+    cpm()+1 %>%
+    log2()
 
   de_test <- y %>%
     glmFit(design) %>%
@@ -166,7 +166,7 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   ) %>%
   pmap(draw_summary_panel)
 
-  plots[["overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts)
+  plots[["an_overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts)
 
   de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
 

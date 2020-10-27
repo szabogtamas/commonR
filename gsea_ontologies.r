@@ -91,19 +91,19 @@ main <- function(opt){
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
   if(opt$verbose){
-    cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_specie, "\n"))
+    cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
 
-  if (length(opt$hitGenes) > 1){
+  if (ncol(opt$hitGenes) > 3){
     if(opt$verbose){
-      cat("Multiple hitlists supplied. Plotting comparison on common plot\n")
+      cat("Multiple conditions supplied. Plotting comparison on common plot\n")
     }
-    p <- do.call(plot_enrichment_for_multiple_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
+    p <- do.call(plot_gsea_for_multiple_conditions, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   } else {
     if(opt$verbose){
       cat("Single hitlists supplied\n")
     }
-    p <- do.call(plot_enrichment_for_single_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
+    p <- do.call(plot_gsea_for_single_condition, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   }
 
   cat("Saving figure\n")
@@ -151,17 +151,17 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=
     cat("Looking for gene set enrichments\n")
   }
   hitGenes <- unlist(hitGenes)
-  enrichment <- single_hitlist_enrichment(hitGenes, geneSet, universe, ...)
+  enrichment <- single_gsea_enrichment(hitGenes, geneSet, universe, ...)
 
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <- single_hitlist_enrichdot(enrichment)
+  p1 <- single_gsea_enrichdot(enrichment)
   
   if(verbose){
     cat("Plotting dotplot of top genes\n")
   }
-  p2 <- single_hitlist_genedot(enrichment)
+  p2 <- single_gsea_genedot(enrichment)
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
@@ -170,7 +170,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=
   return(p)
 }
 
-plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRes=NULL, universe=NULL, verbose=TRUE, ...){
+plot_enrichment_for_multiple_conditions <- function(hitGenes, geneSet=NULL, emptyRes=NULL, universe=NULL, verbose=TRUE, ...){
   
   #' Create a one-page figure showing top enriched gene sets (pathways) for mulitple gene sets.
   #' 
@@ -217,12 +217,12 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
-  enrichment <- multi_hitlist_enrichment(hitGenes, geneSet, emptyRes, universe, ...)
+  enrichment <- multi_gsea_enrichment(hitGenes, geneSet, emptyRes, universe, ...)
 
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <- multi_hitlist_enrichdot(enrichment)
+  p1 <- multi_gsea_enrichdot(enrichment)
   
   if(verbose){
     cat("Plotting dotplot of top genes\n")
@@ -230,7 +230,7 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
 
   p <- tryCatch({
 
-    p2 <- multi_hitlist_genedot(enrichment)
+    p2 <- multi_gsea_genedot(enrichment)
     if(verbose){
       cat("Combining subplots and saving figure\n")
     }
@@ -291,7 +291,7 @@ create_empty_result_object <- function(){
   return(emptyRes)
 }
 
-single_hitlist_enrichment <- function(hitGenes, geneSet, ...){
+single_gsea_enrichment <- function(hitGenes, geneSet, ...){
   
   #' Do overrepresentation analysis for a single gene list with ClusterProfiler.
   #' 
@@ -311,7 +311,7 @@ single_hitlist_enrichment <- function(hitGenes, geneSet, ...){
   clusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, ...)
 }
 
-multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
+multi_gsea_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
   
   #' Do overrepresentation analysis for multiple gene lists with ClusterProfiler.
   #' 
@@ -368,7 +368,7 @@ multi_hitlist_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
   return(compRes)
 }
 
-single_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
+single_gsea_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
   #' Create a dotplot showing top enriched gene sets (pathways).
   #' 
@@ -399,7 +399,7 @@ clusterProfiler::dotplot(enrichment, showCategory=30) +
   )
 }
 
-multi_hitlist_enrichdot <- function(enrichment, plot_title=opt$plot_title){
+multi_gsea_enrichdot <- function(enrichment, plot_title=opt$plot_title){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
@@ -434,7 +434,7 @@ clusterProfiler::dotplot(enrichment, showCategory=30) +
   )
 }
 
-single_hitlist_genedot <- function(enrichment){
+single_gsea_genedot <- function(enrichment){
   
   #' Create a dotplot showing gene set membership of top (best known) genes.
   #' 
@@ -488,7 +488,7 @@ single_hitlist_genedot <- function(enrichment){
     )
 }
 
-multi_hitlist_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666')){
+multi_gsea_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666')){
   
   #' Create a dotplot showing gene set membership of top (best known) genes.
   #' 
