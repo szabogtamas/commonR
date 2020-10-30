@@ -293,7 +293,8 @@ create_empty_result_object <- function(){
 
 single_gsea_enrichment <- function(hitGenes, geneSet, ...){
   
-  #' Do overrepresentation analysis for a single gene list with ClusterProfiler.
+  #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
+  #' ClusterProfiler.
   #' 
   #' @description Needs a gene list and a knowledge set of gene ontology memberships to
   #' to do ORA. Extra arguments will be passed on to clusterProfiler::enricher
