@@ -91,7 +91,7 @@ main <- function(opt){
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
   if(opt$verbose){
-    cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_specie, "\n"))
+    cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
 
   if (length(opt$hitGenes) > 1){
