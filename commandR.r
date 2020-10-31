@@ -119,7 +119,7 @@ if (!interactive()) {
   for (rn in names(c(scriptMandatoryArgs, scriptOptionalArgs))){
     rg <- c(scriptMandatoryArgs, scriptOptionalArgs)[[rn]]
     if ("type" %in% names(rg) & !is.null(opt[[rn]])) {
-        if (rg[["type"]] %in% c("vector", "nested", "table") ) {
+        if (rg[["type"]] %in% c("vector", "nested", "table", "tables") ) {
           if (rg[["type"]] == "vector") {
             opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
           } else {
@@ -136,9 +136,24 @@ if (!interactive()) {
               }
               opt[[rn]] <- nl
             } else {
-              opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
+              if (rg[["type"]] == "tables") {
+                nl <- list()
+                sl <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
+                n <- 0
+                for (x in sl){
+                  n <- n+1
+                  x <- unlist(strsplit(x, ":", fixed=TRUE))
+                  if (length(x) > 1){
+                    nl[[x[1]]] <- do.call(read.csv, c(list(x[2]), rg[["readoptions"]]))
+                  } else {
+                    nl[[paste0("Condition_", n)]] <- do.call(read.csv, c(list(x[1]), rg[["readoptions"]]))
+                  }
+                }
+                opt[[rn]] <- nl
+              } else {
+                opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
+              }
             }
-            
           }
         }
       }
