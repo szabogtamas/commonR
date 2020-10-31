@@ -308,7 +308,7 @@ single_gsea_enrichment <- function(scoreTable, geneSet, score_column=NULL, ...){
   #' @param geneSet dataframe. Gene set membership of genes.
   #' @param score_column string. Name of column with scores. Third column if not specified.
   #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::enricher.
-  #' @usage single_enrichment(hitGenes, geneSet, ...)
+  #' @usage single_gsea_enrichment(hitGenes, geneSet, ...)
   #' @return enrichment result
 
   #' @examples
