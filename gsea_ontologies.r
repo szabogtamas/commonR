@@ -92,6 +92,7 @@ main <- function(opt){
   opt$outPrefix <- NULL
   opt$commandRpath <- NULL
   opt$help <- NULL
+  #TODO: Further restructure, possibly without separate single and multi arms
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
   if(opt$verbose){
