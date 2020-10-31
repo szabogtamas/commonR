@@ -106,10 +106,10 @@ main <- function(opt){
     p <- do.call(plot_enrichment_for_single_hitlist, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   }
 
-  cat("Saving figure\n")
-  pdf(paste0(outFile, ".pdf"), height=9.6, width=7.2)
-  print(p)
-  dev.off()
+  if(opt$verbose){
+    cat("Saving figure\n")
+  }
+  fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
 plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=NULL, verbose=TRUE, ...){
