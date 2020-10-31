@@ -3,10 +3,10 @@
 scriptDescription <- "A script that takes a DE result with numerical changes under a condition and runs GSEA."
 
 scriptMandatoryArgs <- list(
-  hitGenes = list(
+  scoreTables = list(
     abbr="-i",
-    type="table",
-    help="A table with unique ID and name as first two column and numeric as rest."
+    type="tables",
+    help="Tables with unique ID and name as first two column and numeric as rest."
   ),
   outFile = list(
     abbr="-o",
@@ -19,8 +19,12 @@ scriptMandatoryArgs <- list(
 )
 
 scriptOptionalArgs <- list(
+  score_column = list(
+    default="logFC",
+    help="Title to be put over the first subfigure."
+  ),
   plot_title = list(
-    default='Top gene sets',
+    default="Top gene sets",
     help="Title to be put over the first subfigure."
   ),
   msig_species = list(
@@ -66,7 +70,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "ggplot2", "cowplot", "scatterpie", "msigdbr", "clusterProfiler", "rlang")){
+for (pk in c("tidyr", "dplyr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -94,22 +98,22 @@ main <- function(opt){
     cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
 
-  if (ncol(opt$hitGenes) > 3){
+  if (length(scoreTables) > 1){
     if(opt$verbose){
       cat("Multiple conditions supplied. Plotting comparison on common plot\n")
     }
     p <- do.call(plot_gsea_for_multiple_conditions, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   } else {
     if(opt$verbose){
-      cat("Single hitlists supplied\n")
+      cat("Single scoring table supplied\n")
     }
     p <- do.call(plot_gsea_for_single_condition, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
   }
-
-  cat("Saving figure\n")
-  pdf(paste0(outFile, ".pdf"), height=9.6, width=7.2)
-  print(p)
-  dev.off()
+  
+  if(opt$verbose){
+    cat("Saving figure\n")
+  }
+  fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
 plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=NULL, verbose=TRUE, ...){
@@ -291,25 +295,38 @@ create_empty_result_object <- function(){
   return(emptyRes)
 }
 
-single_gsea_enrichment <- function(hitGenes, geneSet, ...){
+single_gsea_enrichment <- function(scoreTable, geneSet, score_column=NULL, ...){
   
   #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
   #' ClusterProfiler.
   #' 
-  #' @description Needs a gene list and a knowledge set of gene ontology memberships to
-  #' to do ORA. Extra arguments will be passed on to clusterProfiler::enricher
+  #' @description Takes a tble with scores associated to gene names or symbols. 
+  #' This score is typically logFC, but can also be p-value. GSEA is carried out after
+  #' sorting based on score. 
   #' 
-  #' @param hitGenes character vector. A vector of gene symbols to be queried.
+  #' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
   #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param score_column string. Name of column with scores. Third column if not specified.
   #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::enricher.
   #' @usage single_enrichment(hitGenes, geneSet, ...)
   #' @return enrichment result
 
   #' @examples
-  #' single_enrichment(hitGenes, geneSet, ...)
-  #' single_enrichment(hitGenes, geneSet, pAdjustMethod="BH")
+  #' single_gsea_enrichment(scoreTable, geneSet, ...)
+  #' single_gsea_enrichment(hitGenes, geneSet, score_column="logFC", pAdjustMethod="BH")
 
-  clusterProfiler::enricher(hitGenes, TERM2GENE=geneSet, ...)
+
+  cn <- colnames(scoreTable)
+  if is.null(score_column){
+    score_column <- cn[3]
+  }
+  genesym <- cn[2]
+  scoreTable <- scoreTable %>%
+    distinct(across(.vars=z), .keep_all = TRUE)
+  hitGenes <- scoreTable[[score_column]]
+  names(hitGenes) <- scoreTable[[hitGenes]]
+  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
+  clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
 }
 
 multi_gsea_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
