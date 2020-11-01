@@ -70,7 +70,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
+for (pk in c("tidyr", "dplyr", "purr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -92,24 +92,12 @@ main <- function(opt){
   opt$outPrefix <- NULL
   opt$commandRpath <- NULL
   opt$help <- NULL
-  #TODO: Further restructure, possibly without separate single and multi arms
 
   opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
   if(opt$verbose){
     cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
-
-  if (length(scoreTables) > 1){
-    if(opt$verbose){
-      cat("Multiple conditions supplied. Plotting comparison on common plot\n")
-    }
-    p <- do.call(plot_gsea_for_multiple_conditions, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
-  } else {
-    if(opt$verbose){
-      cat("Single scoring table supplied\n")
-    }
-    p <- do.call(plot_gsea_for_single_condition, opt[!(names(opt) %in% c("plot_title", "msig_category", "msig_subcategory", "msig_species"))])
-  }
+  p <- do.call(plot_gsea, opt[!(names(opt) %in% c("msig_category", "msig_subcategory", "msig_species"))])
   
   if(opt$verbose){
     cat("Saving figure\n")
@@ -117,89 +105,40 @@ main <- function(opt){
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
-plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=NULL, verbose=TRUE, ...){
+plot_gsea <- function(
+  scoreTables,
+  geneSet=NULL,
+  emptyRes=NULL,
+  score_column=NULL,
+  universe=NULL,
+  verbose=TRUE,
+  ...
+  ){
   
-  #' Create a one-page figure showing top enriched genes sets (pathways) for a single gene set.
+  #' Create a one-page figure showing top enriched gene sets (pathways) based on GSEA.
   #' 
   #' @description Downoads gene set information from MSigDB for a given species, runs
-  #' overrepresentation analysis and compiles a figure with 2 subplots: dotplot of gene
-  #' sets and dotplot showing gene set membership for top (best known) genes.
+  #' Gene Set Enrichment Analysis and compiles a figure with 2 subplots: dotplot of gene
+  #' sets and ridgeplot showing distribution of gene expression change in top gene sets.
   #' 
-  #' @param hitGenes character vector. A vector of gene symbols to be queried.
-  #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param verbose logical. Whether progress messages should be printed.
-  #' @param ... ellipse. Arguments to be passed on to the enricher function.
-  #' @usage plot_enrichment_for_single_hitlist(hitGenes, geneSet=NULL, verbose=TRUE, ...)
-  #' @return ggplot
-  #' @details Dotplot of gene sets show top enriched gene sets. Color corresponds to
-  #' significance, while size shows gene count in hit list. Dotplot of gene set mebership
-  #' features dot where genes belong to a given gene set. Size corresponds to gene set size.
-  
-  #' @examples
-  #' plot_enrichment_for_single_hitlist(hitGenes)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, verbose=FALSE)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, verbose=FALSE, pAdjustMethod="BH")
-
-  if(is.null(geneSet)){
-    if(verbose){
-      cat("Downloading deafault ontology set\n")
-    }
-    geneSet <- download_ontologies()
-  }
-  
-  if(is.null(universe)){
-    universe <- unique(geneSet$gene_symbol)
-  }
-
-  if(verbose){
-    cat("Looking for gene set enrichments\n")
-  }
-  hitGenes <- unlist(hitGenes)
-  enrichment <- single_gsea_enrichment(hitGenes, geneSet, universe, ...)
-
-  if(verbose){
-    cat("Plotting dotplot of top gene sets\n")
-  }
-  p1 <- single_gsea_enrichdot(enrichment)
-  
-  if(verbose){
-    cat("Plotting dotplot of top genes\n")
-  }
-  p2 <- single_gsea_genedot(enrichment)
-
-  if(verbose){
-    cat("Combining subplots and saving figure\n")
-  }
-  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
-  return(p)
-}
-
-plot_enrichment_for_multiple_conditions <- function(hitGenes, geneSet=NULL, emptyRes=NULL, universe=NULL, verbose=TRUE, ...){
-  
-  #' Create a one-page figure showing top enriched gene sets (pathways) for mulitple gene sets.
-  #' 
-  #' @description Downoads gene set information from MSigDB for a given species, runs
-  #' overrepresentation analysis and compiles a figure with 2 subplots: dotplot of gene
-  #' sets and dotplot showing gene set membership for top (best known) genes.
-  #' 
-  #' @param hitGenes character vector. A vector of gene symbols to be queried.
+  #' @param scoreTables list. A named list of dataframes with gene ID in the first column,
+  #' symbol in the second
   #' @param geneSet dataframe. Gene set membership of genes.
   #' @param emptyRes result object. An empty result object to be extended with enriched sets.
+  #' @param score_column string. Name of column with scores. Third column if not specified.
   #' @param universe character vector. All genes in the organism.
   #' @param verbose logical. Whether progress messages should be printed.
   #' @param ... ellipse. Arguments to be passed on to the enricher function.
-  #' @usage plot_enrichment_for_single_hitlist(hitGenes, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...)
+  #' @usage plot_gsea(scoreTables, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...)
   #' @return ggplot
-  #' @details Dotplot of gene sets show top enriched gene sets. Color corresponds to
-  #' significance, while size shows gene count in hit list. Dotplot of gene set mebership
-  #' features dot where genes belong to a given gene set. Size corresponds to gene set size.
+  #' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
+  #' significance, while size shows...
   
   #' @examples
-  #' plot_enrichment_for_single_hitlist(hitGenes)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, emptyRes)
-  #' plot_enrichment_for_single_hitlist(hitGenes, geneSet, verbose=TRUE, pAdjustMethod="BH")
+  #' plot_gsea(scoreTables)
+  #' plot_gsea(scoreTables, geneSet)
+  #' plot_gsea(scoreTables, geneSet, emptyRes)
+  #' plot_gsea(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
   
   if(is.null(geneSet)){
     if(verbose){
@@ -222,34 +161,192 @@ plot_enrichment_for_multiple_conditions <- function(hitGenes, geneSet=NULL, empt
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
-  enrichment <- multi_gsea_enrichment(hitGenes, geneSet, emptyRes, universe, ...)
+  enrichments <- scoreTables %>%
+    map2(names(scoreTables), gsea_enrichment, geneSet, score_column=NULL, ...)
 
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <- multi_gsea_enrichdot(enrichment)
+  p1 <- enrichments %>%
+    gsea_enrichments(geneSet, emptyRes, score_column, ...) %>%
+    gsea_enrichdot()
   
   if(verbose){
-    cat("Plotting dotplot of top genes\n")
+    cat("Plotting ridgeplot of top gene sets\n")
   }
+  p2 <- gsea_ridges(enrichments)
 
-  p <- tryCatch({
-
-    p2 <- multi_gsea_genedot(enrichment)
-    if(verbose){
-      cat("Combining subplots and saving figure\n")
-    }
-    plot_grid(p1, p2, nrow=2, labels="AUTO")
-
-    }, error = function(e) {
-      if(verbose){
-        cat(e)
-      }
-      plot_grid(p1, nrow=2, labels="AUTO")
-    }
-  )
+  if(verbose){
+    cat("Combining subplots and saving figure\n")
+  }
+  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
   
   return(p)
+}
+
+gsea_enrichments <- function(scoreTables, geneSet, emptyRes, score_column=NULL, ...){
+  
+  #' Do GSEA analysis for multiple conditions with ClusterProfiler and compare these
+  #' results on a common dotplot.
+  #' 
+  #' @description Takes a list of tables. Names will appear as condition labels.
+  #' ...
+  #' 
+  #' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
+  #' @param score_column string. Name of column with scores. Third column if not specified.
+  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
+  #' @usage single_gsea_enrichment(hitGenes, geneSet, emptyRes, score_column, ...)
+  #' @return enrichment result
+
+  #' @examples
+  #' gsea_enrichments(scoreTable, geneSet, emptyRes, ...)
+  #' gsea_enrichments(hitGenes, geneSet, emptyRes, score_column="logFC", pAdjustMethod="BH")
+
+
+  compRes <- duplicate(emptyRes)
+  compRes@compareClusterResult <- scoreTables %>%
+    map2(names(scoreTables), gsea_enrichment, geneSet, score_column=NULL, ...) %>%
+    map(funxtion(x){x@result}) %>%
+    bind_rows() %>%
+    mutate(
+      Count = as.numeric(unlist(strsplit(GeneRatio, '/'))) / as.numeric(unlist(strsplit(BgRatio, '/'))))[seq(1, length(GeneRatio)*2, 2)],
+      Count = Count * 100,
+      Description = gsub('GO_', '', Description),
+      Description = gsub('_', ' ', Description)
+    ) %>%
+    arrange(p.adjust)
+
+  return(compRes)
+}
+
+gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
+  
+  #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
+  #' ClusterProfiler.
+  #' 
+  #' @description Takes a table with scores associated to gene names or symbols. 
+  #' This score is typically logFC, but can also be p-value. GSEA is carried out after
+  #' sorting based on score. 
+  #' 
+  #' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
+  #' @param conditionName string. Name of the condition to be shown on plot.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param score_column string. Name of column with scores. Third column if not specified.
+  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
+  #' @usage single_gsea_enrichment(hitGenes, geneSet, ...)
+  #' @return encrichement result
+
+  #' @examples
+  #' gsea_enrichment(scoreTable, conditionName, geneSet)
+  #' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
+
+  cn <- colnames(scoreTable)
+  if is.null(score_column){
+    score_column <- cn[3]
+  }
+  genesym <- cn[2]
+  scoreTable <- scoreTable %>%
+    distinct(across(one_of(c(genesym))), .keep_all = TRUE)
+  hitGenes <- scoreTable[[score_column]]
+  names(hitGenes) <- scoreTable[[hitGenes]]
+  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
+
+  clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
+  enrichment@result <- enrichment@result %>%
+    head(n=20) %>%
+    mutate(
+      Cluster = conditionName,
+      group = conditionName
+    )
+    
+  return(enrichment)
+}
+
+
+gsea_enrichdot <- function(enrichment, plot_title=opt$plot_title){
+
+  #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
+  #' 
+  #' @description A ClusterProfiler enrichment result for multiple hitlists is visualized
+  #' side-by-side, as dotplot. 
+  #' 
+  #' @param enrichment. Result of clusterProfiler::enricher.
+  #' @param plot_title string. Title of the figure.
+  #' @usage single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+  #' @return ggplot
+  #' @details Color corresponds to significance, while size shows gene count in hit list.
+  
+  #' @examples
+  #' single_hitlist_enrichdot(enrichment)
+  #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+
+resulTab <- enrichment@compareClusterResult
+topsets <- rownames(resulTab[!duplicated(resulTab$ID), ])[1:30]
+hitnames <- levels(resulTab$group)
+clusterProfiler::dotplot(enrichment, showCategory=30) +
+  labs(title=plot_title) +
+  scale_color_gradientn(
+    colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
+    breaks=c(0.05, 0.01, 0.001, 0.0001),
+    limits=c(0.00001, 1), trans='log10', oob = scales::squish
+  ) +
+  theme(
+    axis.text.x=element_text(angle=30, hjust=1),
+    axis.text.y=element_text(size=8)
+  )
+}
+
+gsea_ridge <- function(enrichment, conditionName){
+  
+  #' Create a ridgeplot showing distribution of gene expression changes in top gene sets.
+  #' 
+  #' @description The top gene sets are scanned for hit genes, until 25 hit genes are
+  #' collected. Membership of these top genes is shown in top gene sets.
+  #' 
+  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
+  #' @param conditionName string. Name of the condition to be shown on plot.
+  #' @usage gsea_ridge(enrichment, conditionName)
+  #' @return ggplot
+  #' @details ....
+ 
+  #' @examples
+  #' gsea_ridge(enrichment, conditionName)
+
+  clusterProfiler::ridgeplot(enrichment, fill='pvalue') +
+    xlab(conditionName) +
+    scale_color_gradientn(
+      colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
+      breaks=c(0.05, 0.01, 0.001, 0.0001),
+      limits=c(0.00001, 1), trans='log10', oob = scales::squish
+    ) +
+    scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
+    scale_x_discrete(name="", labels=hitnames) +
+    theme(
+      axis.text.x=element_text(angle=30, hjust=1),
+      axis.text.y=element_text(size=8)
+    )
+}
+
+gsea_ridges <- function(enrichments){
+  
+  #' Create ridgeplots showing distribution of gene expression changes in top gene sets
+  #' in all separate conditions.
+  #' 
+  #' @description ...
+  #' 
+  #' @param enrichments list. ClusterProfiler result objects.
+  #' @return ggplot
+  #' @details ....
+ 
+  #' @examples
+  #' gsea_ridge(enrichment, conditionName)
+
+  grid_kws = map2(enrichments, names(enrichments), gsea_ridge)
+  grid_kws[[nrow]] <- 2
+  do.call(plot_grid, grid_kws))
+  
 }
 
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
@@ -294,287 +391,6 @@ create_empty_result_object <- function(){
   mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
   emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
   return(emptyRes)
-}
-
-single_gsea_enrichment <- function(scoreTable, geneSet, score_column=NULL, ...){
-  
-  #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
-  #' ClusterProfiler.
-  #' 
-  #' @description Takes a tble with scores associated to gene names or symbols. 
-  #' This score is typically logFC, but can also be p-value. GSEA is carried out after
-  #' sorting based on score. 
-  #' 
-  #' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
-  #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param score_column string. Name of column with scores. Third column if not specified.
-  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::enricher.
-  #' @usage single_gsea_enrichment(hitGenes, geneSet, ...)
-  #' @return enrichment result
-
-  #' @examples
-  #' single_gsea_enrichment(scoreTable, geneSet, ...)
-  #' single_gsea_enrichment(hitGenes, geneSet, score_column="logFC", pAdjustMethod="BH")
-
-
-  cn <- colnames(scoreTable)
-  if is.null(score_column){
-    score_column <- cn[3]
-  }
-  genesym <- cn[2]
-  scoreTable <- scoreTable %>%
-    distinct(across(.vars=z), .keep_all = TRUE)
-  hitGenes <- scoreTable[[score_column]]
-  names(hitGenes) <- scoreTable[[hitGenes]]
-  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
-  clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
-}
-
-multi_gsea_enrichment <- function(hitGenes, geneSet, emptyRes, ...){
-  
-  #' Do overrepresentation analysis for multiple gene lists with ClusterProfiler.
-  #' 
-  #' @description Takes a nested gene list and a knowledge set of gene ontology
-  #' memberships to to do ORA.
-  #' 
-  #' @param hitGenes character vector. A vector of gene symbols to be queried.
-  #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
-  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::enricher.
-  #' @usage single_enrichment(hitGenes, geneSet, ...)
-  #' @return enrichment result
-
-  #' @examples
-  #' single_enrichment(hitGenes, geneSet, emptyRes)
-  #' single_enrichment(hitGenes, geneSet, emptyRes, pAdjustMethod="BH")
-
-  richRes <- data.frame(
-    Cluster=c(),
-    group=c(),
-    ID=c(),
-    Description=c(),
-    GeneRatio=c(),
-    BgRatio=c(),
-    pvalue=c(),
-    p.adjust=c(),
-    qvalue=c(),
-    geneID=c(),
-    Count=c()
-    )
-
-  compNames <- list()
-  i <- 0
-  for (compname in names(hitGenes)){
-    i <- i + 1
-    hitGenIt <- unique(hitGenes[[compname]])
-    compname <- paste0(compname, ' (', length(hitGenIt), ')')
-    compNames[[i]] <- compname
-    enrichment <- single_hitlist_enrichment(hitGenIt, geneSet, ...)
-    erik <- head(enrichment@result, n=20)
-    erik$Cluster <- rep(compname, nrow(erik))
-    erik$group <- rep(compname, nrow(erik))
-    richRes <- rbind(erik, richRes)
-    }
-  richRes <- richRes[order(richRes$p.adjust), ]
-  richRes$Count <- (as.numeric(unlist(strsplit(richRes$GeneRatio, '/'))) / as.numeric(unlist(strsplit(richRes$BgRatio, '/'))))[seq(1, length(richRes$GeneRatio)*2, 2)]
-  richRes$Count <- richRes$Count * 100
-  richRes$Description <- gsub('GO_', '', richRes$Description)
-  richRes$Description <- gsub('_', ' ', richRes$Description)
-  compRes <- duplicate(emptyRes)
-  richRes$group <- factor(richRes$group, levels=compNames)
-  richRes$Cluster <- factor(richRes$Cluster, levels=compNames)
-  compRes@compareClusterResult <- richRes
-  return(compRes)
-}
-
-single_gsea_enrichdot <- function(enrichment, plot_title=opt$plot_title){
-
-  #' Create a dotplot showing top enriched gene sets (pathways).
-  #' 
-  #' @description A ClusterProfiler enrichment result is visualized as dotplot. 
-  #' 
-  #' @param enrichment. Result of  clusterProfiler::enricher.
-  #' @param plot_title string. Title of the figure.
-  #' @usage single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
-  #' @return ggplot
-  #' @details Color corresponds to significance, while size shows gene count in hit list.
-  
-  #' @examples
-  #' single_hitlist_enrichdot(enrichment)
-  #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
-
-topsets <- rownames(enrichment@result)[1:30]
-clusterProfiler::dotplot(enrichment, showCategory=30) +
-  labs(title=plot_title) +
-  scale_color_gradientn(
-    colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
-    breaks=c(0.05, 0.01, 0.001, 0.0001),
-    limits=c(0.00001, 1), trans='log10', oob = scales::squish
-  ) +
-  scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
-  theme(
-    axis.text.x=element_text(angle=30, hjust=1),
-    axis.text.y=element_text(size=8)
-  )
-}
-
-multi_gsea_enrichdot <- function(enrichment, plot_title=opt$plot_title){
-
-  #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
-  #' 
-  #' @description A ClusterProfiler enrichment result for multiple hitlists is visualized
-  #' side-by-side, as dotplot. 
-  #' 
-  #' @param enrichment. Result of clusterProfiler::enricher.
-  #' @param plot_title string. Title of the figure.
-  #' @usage single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
-  #' @return ggplot
-  #' @details Color corresponds to significance, while size shows gene count in hit list.
-  
-  #' @examples
-  #' single_hitlist_enrichdot(enrichment)
-  #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
-
-resulTab <- enrichment@compareClusterResult
-topsets <- rownames(resulTab[!duplicated(resulTab$ID), ])[1:30]
-hitnames <- levels(resulTab$group)
-clusterProfiler::dotplot(enrichment, showCategory=30) +
-  labs(title=plot_title) +
-  scale_color_gradientn(
-    colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
-    breaks=c(0.05, 0.01, 0.001, 0.0001),
-    limits=c(0.00001, 1), trans='log10', oob = scales::squish
-  ) +
-  scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
-  scale_x_discrete(name="", labels=hitnames) +
-  theme(
-    axis.text.x=element_text(angle=30, hjust=1),
-    axis.text.y=element_text(size=8)
-  )
-}
-
-single_gsea_genedot <- function(enrichment){
-  
-  #' Create a dotplot showing gene set membership of top (best known) genes.
-  #' 
-  #' @description The top gene sets are scanned for hit genes, until 25 hit genes are
-  #' collected. Membership of these top genes is shown in top gene sets.
-  #' 
-  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
-  #' @usage single_hitlist_genedot(enrichment)
-  #' @return ggplot
-  #' @details Dot size shows how many genes the gene set consists of. Color shows how 
-  #' gene sets linked to a certain gene ranked.
- 
-  #' @examples
-  #' single_hitlist_genedot(enrichment)
-
-  topenr <- enrichment@result[1:30, c("ID", "p.adjust", "BgRatio", "geneID")]
-    rownames(topenr) <- topenr$ID
-
-    detailedsets <- c()
-    detailedgenes <- c()
-    for (geneset in rownames(topenr)){
-      if(length(detailedgenes) < 25){
-        detailedgenes <- unique(c(detailedgenes, unlist(strsplit(topenr[geneset, "geneID"], "/"))))
-        detailedsets <- c(detailedsets, geneset)
-      }
-    }
-
-  geneFuns <- enrichment@result %>%
-    .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID")] %>%
-    transform(score = seq(length(detailedsets), 1, -1)) %>%
-    transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
-    transform(GeneSetSize = as.numeric(BgRatio)) %>%
-    transform(geneID = as.character(geneID)) %>%
-    transform(geneID = strsplit(geneID, "/")) %>%
-    unnest(geneID) %>%
-    group_by(geneID) %>%
-    add_tally(wt=score) %>%
-    mutate(genePriority = n) %>%
-    arrange(desc(n))
-
-  ggplot(data=geneFuns, aes(geneID, ID)) +
-    geom_point(aes(size=GeneSetSize, color=genePriority)) +
-    scale_y_discrete(name="", limits=rev(detailedsets), labels=rev(sapply(detailedsets, substr, 1, 35))) +
-    scale_x_discrete(name="", limits=detailedgenes, labels=detailedgenes) +
-    theme(
-      axis.text.x=element_text(size=7, angle=30, hjust=1),
-      axis.text.y=element_text(size=8),
-      legend.position="bottom",
-      legend.justification = c(0,1),
-      legend.margin = margin(l=-90, r=90, unit="pt")
-    )
-}
-
-multi_gsea_genedot <- function(enrichment, cohort_order=NULL, colorscheme=c('#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666')){
-  
-  #' Create a dotplot showing gene set membership of top (best known) genes.
-  #' 
-  #' @description The top gene sets of multi-comparison are scanned for hit genes, until
-  #' 25 hit genes are collected. Membership of these top genes is shown in top gene sets.
-  #' 
-  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
-  #' @usage multi_hitlist_genedot(enrichment)
-  #' @return ggplot
-  #' @details Dot size shows how many genes the gene set consists of. Color shows how 
-  #' gene sets linked to a certain gene ranked.
- 
-  #' @examples
-  #' multi_hitlist_genedot(enrichment)
-  
-  enrichment <- enrichment@compareClusterResult
-  if(is.null(cohort_order)){
-    cohort_order <- unique(as.character(enrichment$group))
-  }
-
-  topenr <- enrichment %>%
-    .[.$ID %in% .$ID[!duplicated(.$ID)][1:30], ] %>%
-    .[, c("ID", "p.adjust", "BgRatio", "geneID")]
-
-  detailedsets <- c()
-  detailedgenes <- c()
-  for (geneset in unique(topenr$ID)){
-    if(length(detailedgenes) < 25){
-      setDats <- topenr[topenr$ID == geneset, "geneID"]
-      detailedgenes <- unique(c(detailedgenes, unlist(sapply(setDats, strsplit, "/"))))
-      detailedsets <- c(detailedsets, geneset)
-    }
-  }
-
-  geneFuns <- enrichment %>%
-    .[detailedsets, c("ID", "p.adjust", "BgRatio", "geneID", "group")] %>%
-    transform(BgRatio = sapply(BgRatio, function(x){unlist(strsplit(x, "/"))[[1]]})) %>%
-    transform(GeneSetSize = as.numeric(BgRatio)) %>%
-    transform(ScaledGeneSetSize = log10(GeneSetSize)) %>%
-    transform(ScaledGeneSetSize = (ScaledGeneSetSize/max(ScaledGeneSetSize, na.rm=TRUE))/2) %>%
-    transform(group = factor(group, levels=cohort_order)) %>%
-    transform(geneID = as.character(geneID)) %>%
-    transform(geneID = strsplit(geneID, "/")) %>%
-    unnest(geneID) %>%
-    transform(geneSet = as.numeric(factor(ID, levels=rev(detailedsets)))) %>%
-    transform(gene = as.numeric(factor(geneID, levels=detailedgenes))) %>%
-    transform(cnt = 1) %>%
-    pivot_wider(values_from=cnt, names_from=group, values_fill=list(cnt=0))
-
-  ggplot() +
-    geom_scatterpie(aes(x=gene, y=geneSet, r=ScaledGeneSetSize), data=geneFuns, cols=cohort_order) +
-    scale_x_continuous(breaks=seq(1, length(unique(geneFuns$geneID))), labels =unique(arrange(geneFuns, by=gene)$geneID), "") +
-    scale_y_continuous(breaks=seq(1, length(unique(geneFuns$ID))), labels = unique(arrange(geneFuns, by=geneSet)$ID), "") +
-    #geom_scatterpie_legend(geneFuns$ScaledGeneSetSize, x=1, y=1) +
-    scale_colour_manual(values=colorscheme, aesthetics="fill", name="") +
-    coord_equal() +
-    theme(
-      axis.text.x=element_text(size=6, angle=30, hjust=1),
-      axis.text.y=element_text(size=8),
-      legend.position="bottom",
-      legend.justification = c(0,1),
-      legend.margin = margin(l=-90, r=90, unit="pt"),
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(colour = "black")
-    )
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
