@@ -316,7 +316,7 @@ gsea_ridge <- function(enrichment, conditionName){
   #' @examples
   #' gsea_ridge(enrichment, conditionName)
 
-  clusterProfiler::ridgeplot(enrichment, fill='pvalue') +
+  clusterProfiler::ridgeplot(enrichment, fill='NES') +
     xlab(conditionName) +
     scale_color_gradientn(
       colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
