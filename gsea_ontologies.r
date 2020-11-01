@@ -207,7 +207,7 @@ gsea_enrichments <- function(enrichmentList, geneSet, emptyRes, score_column=NUL
 
 
   compRes <- duplicate(emptyRes)
-  compRes@compareClusterResult <- enrichmentList %>%
+  enrichments <- enrichmentList %>%
     map(function(x){x@result}) %>%
     bind_rows() %>%
     mutate(
@@ -218,6 +218,7 @@ gsea_enrichments <- function(enrichmentList, geneSet, emptyRes, score_column=NUL
     ) %>%
     arrange(p.adjust)
 
+  compRes@compareClusterResult <- enrichments%
   return(compRes)
 }
 
