@@ -247,7 +247,6 @@ gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NUL
   if (is.null(score_column)){
     score_column <- cn[3]
   }
-  browser()
   genesym <- cn[2]
   scoreTable <- scoreTable %>%
     distinct(across(one_of(c(genesym))), .keep_all = TRUE)
