@@ -218,7 +218,7 @@ gsea_enrichments <- function(enrichmentList, geneSet, emptyRes, score_column=NUL
     ) %>%
     arrange(p.adjust)
 
-  compRes@compareClusterResult <- enrichments%
+  compRes@compareClusterResult <- enrichments
   return(compRes)
 }
 
