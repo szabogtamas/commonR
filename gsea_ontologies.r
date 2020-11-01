@@ -184,7 +184,8 @@ plot_gsea <- function(
   return(p)
 }
 
-gsea_enrichments <- function(scoreTables, geneSet, emptyRes, score_column=NULL, ...){
+
+gsea_enrichments <- function(enrichmentList, geneSet, emptyRes, score_column=NULL, ...){
   
   #' Do GSEA analysis for multiple conditions with ClusterProfiler and compare these
   #' results on a common dotplot.
@@ -192,7 +193,7 @@ gsea_enrichments <- function(scoreTables, geneSet, emptyRes, score_column=NULL, 
   #' @description Takes a list of tables. Names will appear as condition labels.
   #' ...
   #' 
-  #' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
+  #' @param enrichmentList named list. Enrichment raults.
   #' @param geneSet dataframe. Gene set membership of genes.
   #' @param emptyRes result object. An empty result object to be extended with enriched sets.
   #' @param score_column string. Name of column with scores. Third column if not specified.
@@ -206,13 +207,13 @@ gsea_enrichments <- function(scoreTables, geneSet, emptyRes, score_column=NULL, 
 
 
   compRes <- duplicate(emptyRes)
-  compRes@compareClusterResult <- scoreTables %>%
-    map2(names(scoreTables), gsea_enrichment, geneSet, score_column=NULL, ...) %>%
-    map(funxtion(x){x@result}) %>%
+  compRes@compareClusterResult <- enrichmentList %>%
+    map2(names(enrichmentList), gsea_enrichment, geneSet, score_column=NULL, ...) %>%
+    map(function(x){x@result}) %>%
     bind_rows() %>%
     mutate(
-      Count = as.numeric(unlist(strsplit(GeneRatio, '/'))) / as.numeric(unlist(strsplit(BgRatio, '/'))))[seq(1, length(GeneRatio)*2, 2)],
-      Count = Count * 100,
+      #Count = as.numeric(unlist(strsplit(GeneRatio, '/'))) / as.numeric(unlist(strsplit(BgRatio, '/'))))[seq(1, length(GeneRatio)*2, 2)],
+      #Count = Count * 100,
       Description = gsub('GO_', '', Description),
       Description = gsub('_', ' ', Description)
     ) %>%
@@ -220,6 +221,7 @@ gsea_enrichments <- function(scoreTables, geneSet, emptyRes, score_column=NULL, 
 
   return(compRes)
 }
+
 
 gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
   
@@ -243,9 +245,10 @@ gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NUL
   #' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
 
   cn <- colnames(scoreTable)
-  if is.null(score_column){
+  if (is.null(score_column)){
     score_column <- cn[3]
   }
+  browser()
   genesym <- cn[2]
   scoreTable <- scoreTable %>%
     distinct(across(one_of(c(genesym))), .keep_all = TRUE)
