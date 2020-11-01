@@ -208,7 +208,6 @@ gsea_enrichments <- function(enrichmentList, geneSet, emptyRes, score_column=NUL
 
   compRes <- duplicate(emptyRes)
   compRes@compareClusterResult <- enrichmentList %>%
-    map2(names(enrichmentList), gsea_enrichment, geneSet, score_column=NULL, ...) %>%
     map(function(x){x@result}) %>%
     bind_rows() %>%
     mutate(
