@@ -253,7 +253,7 @@ gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NUL
   scoreTable <- scoreTable %>%
     distinct(across(one_of(c(genesym))), .keep_all = TRUE)
   hitGenes <- scoreTable[[score_column]]
-  names(hitGenes) <- scoreTable[[hitGenes]]
+  names(hitGenes) <- scoreTable[[genesym]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
 
   enrichment <- clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
