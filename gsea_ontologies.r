@@ -347,7 +347,7 @@ gsea_ridges <- function(enrichments){
 
   grid_kws = map2(enrichments, names(enrichments), gsea_ridge)
   grid_kws[[nrow]] <- 2
-  do.call(plot_grid, grid_kws))
+  do.call(plot_grid, grid_kws)
   
 }
 
