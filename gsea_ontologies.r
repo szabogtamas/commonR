@@ -256,7 +256,7 @@ gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NUL
   names(hitGenes) <- scoreTable[[hitGenes]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
 
-  clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
+  enrichment <- clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
   enrichment@result <- enrichment@result %>%
     head(n=20) %>%
     mutate(
