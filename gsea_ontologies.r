@@ -85,7 +85,7 @@ main <- function(opt){
   #' @param opt list. a named list of all command line options; will be passed on 
   #' 
   #' @return Not intended to return anything, but rather save outputs to files.
-  
+  #TODO: Sort out correct usage of ellipses
   outFile <- paste0(opt$outPrefix, opt$outFile) %>%
     gsub("/", "___", .)
   opt$outFile <- NULL
