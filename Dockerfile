@@ -13,6 +13,7 @@ RUN install2.r --error \
     pheatmap
 
 
+RUN R -e "BiocManager::install('HPAanalyze')"
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('edgeR')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
