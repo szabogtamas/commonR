@@ -6,7 +6,8 @@ scriptMandatoryArgs <- list(
   scoreTables = list(
     abbr="-i",
     type="tables",
-    help="Tables with unique ID and name as first two column and numeric as rest."
+    help="Tables with unique ID and name as first two column and numeric as rest.",
+    readoptions=list(stringsAsFactors=FALSE, sep="\t")
   ),
   outFile = list(
     abbr="-o",
@@ -70,7 +71,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "purr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
+for (pk in c("tidyr", "dplyr", "purrr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -98,11 +99,10 @@ main <- function(opt){
     cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
   p <- do.call(plot_gsea, opt[!(names(opt) %in% c("msig_category", "msig_subcategory", "msig_species"))])
-  
   if(opt$verbose){
     cat("Saving figure\n")
   }
-  fig2pdf(p, outFile, height=9.6, width=7.2)
+  #fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
 plot_gsea <- function(
@@ -161,69 +161,17 @@ plot_gsea <- function(
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
+  plot_title <- additional_args[["plot_title"]]
+  qvalueCutoff <- additional_args[["qvalueCutoff"]]
+  additional_args <- list(...)
+  additional_args[!(names(additional_args) %in% c("plot_title", "qvalueCutoff"))]
   enrichments <- scoreTables %>%
-    map2(names(scoreTables), gsea_enrichment, geneSet, score_column=NULL, ...)
-
-  if(verbose){
-    cat("Plotting dotplot of top gene sets\n")
-  }
-  p1 <- enrichments %>%
-    gsea_enrichments(geneSet, emptyRes, score_column, ...) %>%
-    gsea_enrichdot()
-  
-  if(verbose){
-    cat("Plotting ridgeplot of top gene sets\n")
-  }
-  p2 <- gsea_ridges(enrichments)
-
-  if(verbose){
-    cat("Combining subplots and saving figure\n")
-  }
-  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
-  
-  return(p)
+    map2(names(scoreTables), gsea_enrichments, geneSet, score_column=score_column, !!additional_args)
+  print(head(enrichments[[1]]))
 }
 
 
-gsea_enrichments <- function(enrichmentList, geneSet, emptyRes, score_column=NULL, ...){
-  
-  #' Do GSEA analysis for multiple conditions with ClusterProfiler and compare these
-  #' results on a common dotplot.
-  #' 
-  #' @description Takes a list of tables. Names will appear as condition labels.
-  #' ...
-  #' 
-  #' @param enrichmentList named list. Enrichment raults.
-  #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
-  #' @param score_column string. Name of column with scores. Third column if not specified.
-  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
-  #' @usage single_gsea_enrichment(hitGenes, geneSet, emptyRes, score_column, ...)
-  #' @return enrichment result
-
-  #' @examples
-  #' gsea_enrichments(scoreTable, geneSet, emptyRes, ...)
-  #' gsea_enrichments(hitGenes, geneSet, emptyRes, score_column="logFC", pAdjustMethod="BH")
-
-
-  compRes <- duplicate(emptyRes)
-  enrichments <- enrichmentList %>%
-    map(function(x){x@result}) %>%
-    bind_rows() %>%
-    mutate(
-      #Count = as.numeric(unlist(strsplit(GeneRatio, '/'))) / as.numeric(unlist(strsplit(BgRatio, '/'))))[seq(1, length(GeneRatio)*2, 2)],
-      #Count = Count * 100,
-      Description = gsub('GO_', '', Description),
-      Description = gsub('_', ' ', Description)
-    ) %>%
-    arrange(p.adjust)
-
-  compRes@compareClusterResult <- enrichments
-  return(compRes)
-}
-
-
-gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
+gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
   
   #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
   #' ClusterProfiler.
@@ -264,6 +212,43 @@ gsea_enrichment <- function(scoreTable, conditionName, geneSet, score_column=NUL
     )
     
   return(enrichment)
+}
+
+
+gsea_enrichment <- function(enrichmentList, geneSet, emptyRes, ...){
+  
+  #' Do GSEA analysis for multiple conditions with ClusterProfiler and compare these
+  #' results on a common dotplot.
+  #' 
+  #' @description Takes a list of tables. Names will appear as condition labels.
+  #' ...
+  #' 
+  #' @param enrichmentList named list. Enrichment raults.
+  #' @param geneSet dataframe. Gene set membership of genes.
+  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
+  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
+  #' @usage single_gsea_enrichment(hitGenes, geneSet, emptyRes, score_column, ...)
+  #' @return enrichment result
+
+  #' @examples
+  #' gsea_enrichments(scoreTable, geneSet, emptyRes, ...)
+  #' gsea_enrichments(hitGenes, geneSet, emptyRes, score_column="logFC", pAdjustMethod="BH")
+
+
+  compRes <- duplicate(emptyRes)
+  enrichments <- enrichmentList %>%
+    map(function(x){x@result}) %>%
+    bind_rows() %>%
+    mutate(
+      #Count = as.numeric(unlist(strsplit(GeneRatio, '/'))) / as.numeric(unlist(strsplit(BgRatio, '/'))))[seq(1, length(GeneRatio)*2, 2)],
+      #Count = Count * 100,
+      Description = gsub('GO_', '', Description),
+      Description = gsub('_', ' ', Description)
+    ) %>%
+    arrange(p.adjust)
+
+  compRes@compareClusterResult <- enrichments
+  return(compRes)
 }
 
 
