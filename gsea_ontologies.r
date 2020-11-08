@@ -161,12 +161,19 @@ plot_gsea <- function(
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
+  additional_args <- list(...)
   plot_title <- additional_args[["plot_title"]]
   qvalueCutoff <- additional_args[["qvalueCutoff"]]
-  additional_args <- list(...)
   additional_args[!(names(additional_args) %in% c("plot_title", "qvalueCutoff"))]
-  enrichments <- scoreTables %>%
-    map2(names(scoreTables), gsea_enrichments, geneSet, score_column=score_column, !!additional_args)
+  additional_args[["geneSet"]] <- geneSet
+  additional_args[["score_column"]] <- score_column
+  print(head(scoreTables[[1]]))
+  enrichments <-list()
+  for (condition in names(scoreTables)){
+    print(head(scoreTables[[condition]]))
+    print(attributes(scoreTables[[condition]]))
+    enrichments[[condition]] <- do.call(gsea_enrichments, c(scoreTables[[condition]], condition, additional_args))
+  }
   print(head(enrichments[[1]]))
 }
 
@@ -192,17 +199,21 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
   #' gsea_enrichment(scoreTable, conditionName, geneSet)
   #' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
 
+
+  print(names(list(...)))
+
   cn <- colnames(scoreTable)
   if (is.null(score_column)){
     score_column <- cn[3]
   }
   genesym <- cn[2]
+  print(head(scoreTable))
   scoreTable <- scoreTable %>%
     distinct(across(one_of(c(genesym))), .keep_all = TRUE)
   hitGenes <- scoreTable[[score_column]]
   names(hitGenes) <- scoreTable[[genesym]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
-
+  print(head(hitGenes))
   enrichment <- clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
   enrichment@result <- enrichment@result %>%
     head(n=20) %>%
