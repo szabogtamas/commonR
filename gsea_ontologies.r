@@ -45,12 +45,8 @@ scriptOptionalArgs <- list(
     help="Change this to BH for Bonferroni correction."
   ),
   pvalueCutoff = list(
-    default=0.05,
-    help="Cut-off for p-values."
-  ),
-  qvalueCutoff = list(
     default=1,
-    help="An FDR of 0.05 is usually too stringent."
+    help="Cut-off for p-values."
   ),
   minGSSize = list(
     default=10,
@@ -161,18 +157,19 @@ plot_gsea <- function(
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
+
   additional_args <- list(...)
   plot_title <- additional_args[["plot_title"]]
-  qvalueCutoff <- additional_args[["qvalueCutoff"]]
-  additional_args[!(names(additional_args) %in% c("plot_title", "qvalueCutoff"))]
+  additional_args <- additional_args[!(names(additional_args) %in% c("plot_title"))]
+  print(additional_args)
   additional_args[["geneSet"]] <- geneSet
   additional_args[["score_column"]] <- score_column
-  print(head(scoreTables[[1]]))
+
   enrichments <-list()
   for (condition in names(scoreTables)){
-    print(head(scoreTables[[condition]]))
-    print(attributes(scoreTables[[condition]]))
-    enrichments[[condition]] <- do.call(gsea_enrichments, c(scoreTables[[condition]], condition, additional_args))
+    additional_args[["scoreTable"]] <- scoreTables[[condition]]
+    additional_args[["conditionName"]] <- condition
+    enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
   print(head(enrichments[[1]]))
 }
