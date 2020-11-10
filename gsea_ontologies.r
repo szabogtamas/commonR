@@ -41,7 +41,7 @@ scriptOptionalArgs <- list(
     help="Subdivision of MSigDB."
   ),
   pAdjustMethod = list(
-    default="none",
+    default="BH",
     help="Change this to BH for Bonferroni correction."
   ),
   pvalueCutoff = list(
@@ -55,6 +55,10 @@ scriptOptionalArgs <- list(
   maxGSSize = list(
     default=500,
     help="Maximum number of genes in gene set."
+  ),
+  n_to_show = list(
+    default=30,
+    help="Number of top gene sets to show on dotplot."
   ),
   commandRpath = list(
     default="commandR.r",
@@ -98,7 +102,7 @@ main <- function(opt){
   if(opt$verbose){
     cat("Saving figure\n")
   }
-  #fig2pdf(p, outFile, height=9.6, width=7.2)
+  fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
 plot_gsea <- function(
@@ -160,8 +164,8 @@ plot_gsea <- function(
 
   additional_args <- list(...)
   plot_title <- additional_args[["plot_title"]]
-  additional_args <- additional_args[!(names(additional_args) %in% c("plot_title"))]
-  print(additional_args)
+  n_to_show <- additional_args[["n_to_show"]]
+  additional_args <- additional_args[!(names(additional_args) %in% c("plot_title", "n_to_show"))]
   additional_args[["geneSet"]] <- geneSet
   additional_args[["score_column"]] <- score_column
 
@@ -171,7 +175,16 @@ plot_gsea <- function(
     additional_args[["conditionName"]] <- condition
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
-  print(head(enrichments[[1]]))
+  
+  if(verbose){
+    cat("Plotting dotplot of top gene sets\n")
+  }
+  p1 <- enrichments %>%
+    gsea_enrichment(emptyRes) %>%
+    gsea_enrichdot(plot_title, n_to_show)
+  
+  invisible(p1)
+
 }
 
 
@@ -196,34 +209,32 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
   #' gsea_enrichment(scoreTable, conditionName, geneSet)
   #' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
 
-
-  print(names(list(...)))
-
   cn <- colnames(scoreTable)
   if (is.null(score_column)){
     score_column <- cn[3]
   }
   genesym <- cn[2]
-  print(head(scoreTable))
   scoreTable <- scoreTable %>%
     distinct(across(one_of(c(genesym))), .keep_all = TRUE)
   hitGenes <- scoreTable[[score_column]]
   names(hitGenes) <- scoreTable[[genesym]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
-  print(head(hitGenes))
+  
   enrichment <- clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
   enrichment@result <- enrichment@result %>%
-    head(n=20) %>%
     mutate(
+      absNES = abs(NES),
       Cluster = conditionName,
       group = conditionName
-    )
+    ) %>%
+    arrange(desc(absNES)) %>%
+    head(n=20)
     
   return(enrichment)
 }
 
 
-gsea_enrichment <- function(enrichmentList, geneSet, emptyRes, ...){
+gsea_enrichment <- function(enrichmentList, emptyRes){
   
   #' Do GSEA analysis for multiple conditions with ClusterProfiler and compare these
   #' results on a common dotplot.
@@ -232,65 +243,57 @@ gsea_enrichment <- function(enrichmentList, geneSet, emptyRes, ...){
   #' ...
   #' 
   #' @param enrichmentList named list. Enrichment raults.
-  #' @param geneSet dataframe. Gene set membership of genes.
   #' @param emptyRes result object. An empty result object to be extended with enriched sets.
-  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
-  #' @usage single_gsea_enrichment(hitGenes, geneSet, emptyRes, score_column, ...)
-  #' @return enrichment result
+  #' @usage gsea_enrichment(enrichmentList, emptyRes)
+  #' @return enrichment result as a multi-condition result object
 
   #' @examples
-  #' gsea_enrichments(scoreTable, geneSet, emptyRes, ...)
-  #' gsea_enrichments(hitGenes, geneSet, emptyRes, score_column="logFC", pAdjustMethod="BH")
+  #' gsea_enrichment(enrichmentList, emptyRes)
 
 
   compRes <- duplicate(emptyRes)
   enrichments <- enrichmentList %>%
-    map(function(x){x@result}) %>%
+    map(function(x) x@result) %>%
     bind_rows() %>%
+    arrange(desc(absNES)) %>%
     mutate(
-      #Count = as.numeric(unlist(strsplit(GeneRatio, '/'))) / as.numeric(unlist(strsplit(BgRatio, '/'))))[seq(1, length(GeneRatio)*2, 2)],
-      #Count = Count * 100,
-      Description = gsub('GO_', '', Description),
-      Description = gsub('_', ' ', Description)
-    ) %>%
-    arrange(p.adjust)
-
+      Count = -log10(p.adjust),
+      GeneRatio = "1/1",
+      BgRatio = "1/1"
+    )
   compRes@compareClusterResult <- enrichments
   return(compRes)
 }
 
 
-gsea_enrichdot <- function(enrichment, plot_title=opt$plot_title){
+gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=30){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
   #' @description A ClusterProfiler enrichment result for multiple hitlists is visualized
   #' side-by-side, as dotplot. 
   #' 
-  #' @param enrichment. Result of clusterProfiler::enricher.
+  #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
   #' @param plot_title string. Title of the figure.
-  #' @usage single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+  #' @usage gsea_enrichdot(enrichment, plot_title="Top gene sets", n_to_show=30)
   #' @return ggplot
   #' @details Color corresponds to significance, while size shows gene count in hit list.
   
   #' @examples
-  #' single_hitlist_enrichdot(enrichment)
-  #' single_hitlist_enrichdot(enrichment, plot_title="Top gene sets")
+  #' gsea_enrichdot(enrichment)
+  #' gsea_enrichdot(enrichment, plot_title="Top gene sets", n_to_show=30)
 
-resulTab <- enrichment@compareClusterResult
-topsets <- rownames(resulTab[!duplicated(resulTab$ID), ])[1:30]
-hitnames <- levels(resulTab$group)
-clusterProfiler::dotplot(enrichment, showCategory=30) +
-  labs(title=plot_title) +
-  scale_color_gradientn(
-    colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
-    breaks=c(0.05, 0.01, 0.001, 0.0001),
-    limits=c(0.00001, 1), trans='log10', oob = scales::squish
-  ) +
-  theme(
-    axis.text.x=element_text(angle=30, hjust=1),
-    axis.text.y=element_text(size=8)
-  )
+  clusterProfiler::dotplot(enrichment, showCategory=n_to_show, color="NES", x="Count") +
+    labs(title=plot_title) +
+    scale_color_gradientn(
+      colors=rev(c('#2b8cbe', '#2b8cbe', 'grey', '#e38071', '#e31e00')),
+      breaks=c(-2, 1, 0, 1, 2),
+      limits=c(-2, 2), oob = scales::squish
+    ) +
+    theme(
+      axis.text.x=element_text(angle=30, hjust=1),
+      axis.text.y=element_text(size=8)
+    )
 }
 
 gsea_ridge <- function(enrichment, conditionName){
