@@ -182,8 +182,18 @@ plot_gsea <- function(
   p1 <- enrichments %>%
     gsea_enrichment(emptyRes) %>%
     gsea_enrichdot(plot_title, n_to_show)
+
+  if(verbose){
+    cat("Plotting ridgeplot of top gene sets\n")
+  }
+  p2 <- gsea_ridges(enrichments)
+
+  if(verbose){
+    cat("Combining subplots and saving figure\n")
+  }
+  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
   
-  invisible(p1)
+  invisible(p)
 
 }
 
@@ -236,13 +246,13 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 
 gsea_enrichment <- function(enrichmentList, emptyRes){
   
-  #' Do GSEA analysis for multiple conditions with ClusterProfiler and compare these
-  #' results on a common dotplot.
+  #' Combine multiple GSEA enrichment results into a common object to be passed to
+  #' dotplot visualization.
   #' 
-  #' @description Takes a list of tables. Names will appear as condition labels.
-  #' ...
+  #' @description Takes a list of GSEA enrichment results, adds columns required by 
+  #' dotplot and combines the result tables into a single table inside a result object.
   #' 
-  #' @param enrichmentList named list. Enrichment raults.
+  #' @param enrichmentList named list. Enrichment results.
   #' @param emptyRes result object. An empty result object to be extended with enriched sets.
   #' @usage gsea_enrichment(enrichmentList, emptyRes)
   #' @return enrichment result as a multi-condition result object
@@ -258,7 +268,7 @@ gsea_enrichment <- function(enrichmentList, emptyRes){
     arrange(desc(absNES)) %>%
     mutate(
       Count = -log10(p.adjust),
-      GeneRatio = "1/1",
+      GeneRatio = -log10(p.adjust),
       BgRatio = "1/1"
     )
   compRes@compareClusterResult <- enrichments
@@ -270,23 +280,28 @@ gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=30){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
-  #' @description A ClusterProfiler enrichment result for multiple hitlists is visualized
-  #' side-by-side, as dotplot. 
+  #' @description A ClusterProfiler enrichment result for multiple conditions and after
+  #' GSEA is visualized side-by-side, as dotplot. 
   #' 
   #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
   #' @param plot_title string. Title of the figure.
+  #' @param n_to_show. Maximum number of enriched gene sets to show.
   #' @usage gsea_enrichdot(enrichment, plot_title="Top gene sets", n_to_show=30)
   #' @return ggplot
-  #' @details Color corresponds to significance, while size shows gene count in hit list.
+  #' @details Color corresponds to Normalized Enrichment score, while size shows
+  #' significance.
   
   #' @examples
   #' gsea_enrichdot(enrichment)
   #' gsea_enrichdot(enrichment, plot_title="Top gene sets", n_to_show=30)
 
-  clusterProfiler::dotplot(enrichment, showCategory=n_to_show, color="NES", x="Count") +
-    labs(title=plot_title) +
+  clusterProfiler::dotplot(enrichment, showCategory=n_to_show, color="NES") +
+    labs(
+      title=plot_title,
+      size="-log(p)"
+    ) +
     scale_color_gradientn(
-      colors=rev(c('#2b8cbe', '#2b8cbe', 'grey', '#e38071', '#e31e00')),
+      colors=c('#2b8cbe', '#00bfff', 'grey', '#e38071', '#e31e00'),
       breaks=c(-2, 1, 0, 1, 2),
       limits=c(-2, 2), oob = scales::squish
     ) +
@@ -300,8 +315,7 @@ gsea_ridge <- function(enrichment, conditionName){
   
   #' Create a ridgeplot showing distribution of gene expression changes in top gene sets.
   #' 
-  #' @description The top gene sets are scanned for hit genes, until 25 hit genes are
-  #' collected. Membership of these top genes is shown in top gene sets.
+  #' @description ....
   #' 
   #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
   #' @param conditionName string. Name of the condition to be shown on plot.
@@ -312,6 +326,8 @@ gsea_ridge <- function(enrichment, conditionName){
   #' @examples
   #' gsea_ridge(enrichment, conditionName)
 
+  print(conditionName)
+  save(enrichment, "sdef.Rdata")
   clusterProfiler::ridgeplot(enrichment, fill='NES') +
     xlab(conditionName) +
     scale_color_gradientn(
@@ -342,7 +358,7 @@ gsea_ridges <- function(enrichments){
   #' gsea_ridge(enrichment, conditionName)
 
   grid_kws = map2(enrichments, names(enrichments), gsea_ridge)
-  grid_kws[[nrow]] <- 2
+  grid_kws[["nrow"]] <- 2
   do.call(plot_grid, grid_kws)
   
 }
