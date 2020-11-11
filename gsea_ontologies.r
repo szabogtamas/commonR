@@ -383,9 +383,6 @@ gsea_ridges <- function(enrichments, n_to_show=30){
   #' @examples
   #' gsea_ridges(enrichment)
 
-  print("Ridging")
-  print(names(enrichments))
-
   topsets <- list()
   for (enrn in names(enrichments)){
     enrichment <- enrichments[[enrn]]
@@ -395,7 +392,7 @@ gsea_ridges <- function(enrichments, n_to_show=30){
         group = enrn
       ) %>%
       arrange(desc(absNES)) %>%
-      head(n = 20)
+      head(n_to_show)
     topsets[[enrn]] <- topset
   }
   
@@ -405,7 +402,7 @@ gsea_ridges <- function(enrichments, n_to_show=30){
     rowwise(ID) %>% 
     mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
     arrange(desc(meanNES)) %>%
-    slice(1:n_to_show) %>%
+    head(n_to_show) %>%
     .$ID %>%
     unique()
 
