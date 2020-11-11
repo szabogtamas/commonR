@@ -327,45 +327,12 @@ gsea_ridge <- function(enrichment, conditionName, topsets){
   #' gsea_ridge(enrichment, conditionName)
   
   enrichment@geneSets %>%
-    .[topsets$ID] %>%
+    .[topsets] %>%
     enframe() %>%
     unnest() %>%
     mutate(
       gex = enrichment@geneList[value],
       condition = conditionName
-    )
-}
-
-
-gsea_ridge2 <- function(enrichment, conditionName){
-  
-  #' Create a ridgeplot showing distribution of gene expression changes in top gene sets.
-  #' 
-  #' @description ....
-  #' 
-  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
-  #' @param conditionName string. Name of the condition to be shown on plot.
-  #' @usage gsea_ridge(enrichment, conditionName)
-  #' @return ggplot
-  #' @details ....
- 
-  #' @examples
-  #' gsea_ridge(enrichment, conditionName)
-
-  print(conditionName)
-  save(enrichment, file="sdef.Rdata")
-  clusterProfiler::ridgeplot(enrichment, fill="NES") +
-    xlab(conditionName) +
-    scale_color_gradientn(
-      colors=rev(c("#2b8cbe", "grey", "#e38071", "#e34a33", "#e31e00")),
-      breaks=c(0.05, 0.01, 0.001, 0.0001),
-      limits=c(0.00001, 1), trans="log10", oob = scales::squish
-    ) +
-    scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
-    scale_x_discrete(name="", labels=hitnames) +
-    theme(
-      axis.text.x=element_text(angle=30, hjust=1),
-      axis.text.y=element_text(size=8)
     )
 }
 
