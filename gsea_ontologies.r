@@ -175,17 +175,18 @@ plot_gsea <- function(
     additional_args[["conditionName"]] <- condition
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
-  enrichments <- merge_gsea_enrichments(enrichments, emptyRes)
   
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show)
+  p1 <-  enrichments %>%
+    merge_gsea_enrichments(emptyRes) %>%
+    gsea_enrichdot(plot_title, n_to_show)
 
   if(verbose){
     cat("Plotting ridgeplot of top gene sets\n")
   }
-  p2 <- gsea_ridges(enrichments)
+  p2 <- gsea_ridges(enrichments, n_to_show)
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
@@ -310,7 +311,7 @@ gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=30){
     )
 }
 
-gsea_ridge <- function(enrichment, conditionName){
+gsea_ridge <- function(enrichment, conditionName, topsets){
   
   #' Create a ridgeplot showing distribution of gene expression changes in top gene sets.
   #' 
@@ -324,13 +325,6 @@ gsea_ridge <- function(enrichment, conditionName){
  
   #' @examples
   #' gsea_ridge(enrichment, conditionName)
-
-  topsets <- enrichment@result %>%
-    mutate(
-      absNES = abs(NES)
-    ) %>%
-    arrange(desc(absNES)) %>%
-    head(n = 20)
   
   enrichment@geneSets %>%
     .[topsets$ID] %>%
@@ -375,7 +369,7 @@ gsea_ridge2 <- function(enrichment, conditionName){
     )
 }
 
-gsea_ridges <- function(enrichment){
+gsea_ridges <- function(enrichments, n_to_show=30){
   
   #' Create ridgeplots showing distribution of gene expression changes in top gene sets
   #' in all separate conditions.
@@ -389,13 +383,49 @@ gsea_ridges <- function(enrichment){
   #' @examples
   #' gsea_ridges(enrichment)
 
-  print("Ridging", names(enrichments))
+  print("Ridging")
+  print(names(enrichments))
+
+  topsets <- list()
+  for (enrn in names(enrichments)){
+    enrichment <- enrichments[[enrn]]
+    topset <- enrichment@result %>%
+      mutate(
+        absNES = abs(NES),
+        group = enrn
+      ) %>%
+      arrange(desc(absNES)) %>%
+      head(n = 20)
+    topsets[[enrn]] <- topset
+  }
+  topsets <- topsets %>%
+    bind_rows()
+  
+  topsets <- topsets %>%
+    bind_rows() %>%
+    pivot_wider(values_from=absNES, names_from=group, values_fill=0) %>%
+    rowwise(ID) %>% 
+    mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
+    arrange(desc(meanNES)) %>%
+    slice(1:n_to_show) %>%
+    .$ID %>%
+    unique()
+
+  print(topsets)
+
   enrichments %>%
-    map2(names(enrichments), gsea_ridge) %>%
+    map2(names(enrichments), gsea_ridge, topsets) %>%
     bind_rows() %>%
     ggplot(aes(x=gex, fill=condition)) + 
-    geom_density() +
-    facet_grid(rows="name", scales="free")
+    geom_density()  +
+    facet_grid(rows = "name", scales = "free", switch="both") +
+    scale_x_continuous(limits=c(-2,2)) +
+    theme(
+      strip.text.y.left = element_text(angle = 0),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank()
+    ) + 
+    labs(x="logFC", y="")
 
 }
 
