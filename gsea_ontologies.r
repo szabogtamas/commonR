@@ -169,19 +169,18 @@ plot_gsea <- function(
   additional_args[["geneSet"]] <- geneSet
   additional_args[["score_column"]] <- score_column
 
-  enrichments <-list()
+  enrichments <- list()
   for (condition in names(scoreTables)){
     additional_args[["scoreTable"]] <- scoreTables[[condition]]
     additional_args[["conditionName"]] <- condition
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
+  enrichments <- merge_gsea_enrichments(enrichments, emptyRes)
   
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <- enrichments %>%
-    gsea_enrichment(emptyRes) %>%
-    gsea_enrichdot(plot_title, n_to_show)
+  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show)
 
   if(verbose){
     cat("Plotting ridgeplot of top gene sets\n")
@@ -244,7 +243,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 }
 
 
-gsea_enrichment <- function(enrichmentList, emptyRes){
+merge_gsea_enrichments <- function(enrichmentList, emptyRes){
   
   #' Combine multiple GSEA enrichment results into a common object to be passed to
   #' dotplot visualization.
@@ -254,11 +253,11 @@ gsea_enrichment <- function(enrichmentList, emptyRes){
   #' 
   #' @param enrichmentList named list. Enrichment results.
   #' @param emptyRes result object. An empty result object to be extended with enriched sets.
-  #' @usage gsea_enrichment(enrichmentList, emptyRes)
+  #' @usage merge_gsea_enrichments(enrichmentList, emptyRes)
   #' @return enrichment result as a multi-condition result object
 
   #' @examples
-  #' gsea_enrichment(enrichmentList, emptyRes)
+  #' merge_gsea_enrichments(enrichmentList, emptyRes)
 
 
   compRes <- duplicate(emptyRes)
@@ -326,14 +325,47 @@ gsea_ridge <- function(enrichment, conditionName){
   #' @examples
   #' gsea_ridge(enrichment, conditionName)
 
+  topsets <- enrichment@result %>%
+    mutate(
+      absNES = abs(NES)
+    ) %>%
+    arrange(desc(absNES)) %>%
+    head(n = 20)
+  
+  enrichment@geneSets %>%
+    .[topsets$ID] %>%
+    enframe() %>%
+    unnest() %>%
+    mutate(
+      gex = enrichment@geneList[value]
+      condition = conditionName
+    )
+}
+
+
+gsea_ridge2 <- function(enrichment, conditionName){
+  
+  #' Create a ridgeplot showing distribution of gene expression changes in top gene sets.
+  #' 
+  #' @description ....
+  #' 
+  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
+  #' @param conditionName string. Name of the condition to be shown on plot.
+  #' @usage gsea_ridge(enrichment, conditionName)
+  #' @return ggplot
+  #' @details ....
+ 
+  #' @examples
+  #' gsea_ridge(enrichment, conditionName)
+
   print(conditionName)
-  save(enrichment, "sdef.Rdata")
-  clusterProfiler::ridgeplot(enrichment, fill='NES') +
+  save(enrichment, file="sdef.Rdata")
+  clusterProfiler::ridgeplot(enrichment, fill="NES") +
     xlab(conditionName) +
     scale_color_gradientn(
-      colors=rev(c('#2b8cbe', 'grey', '#e38071', '#e34a33', '#e31e00')),
+      colors=rev(c("#2b8cbe", "grey", "#e38071", "#e34a33", "#e31e00")),
       breaks=c(0.05, 0.01, 0.001, 0.0001),
-      limits=c(0.00001, 1), trans='log10', oob = scales::squish
+      limits=c(0.00001, 1), trans="log10", oob = scales::squish
     ) +
     scale_y_discrete(name="", limits=rev(topsets), labels=rev(topsets)) +
     scale_x_discrete(name="", labels=hitnames) +
@@ -343,24 +375,28 @@ gsea_ridge <- function(enrichment, conditionName){
     )
 }
 
-gsea_ridges <- function(enrichments){
+gsea_ridges <- function(enrichment){
   
   #' Create ridgeplots showing distribution of gene expression changes in top gene sets
   #' in all separate conditions.
   #' 
   #' @description ...
   #' 
-  #' @param enrichments list. ClusterProfiler result objects.
+  #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
   #' @return ggplot
   #' @details ....
  
   #' @examples
-  #' gsea_ridge(enrichment, conditionName)
+  #' gsea_ridges(enrichment)
 
-  grid_kws = map2(enrichments, names(enrichments), gsea_ridge)
-  grid_kws[["nrow"]] <- 2
-  do.call(plot_grid, grid_kws)
-  
+  print("Ridging", names(enrichments))
+  enrichments %>%
+    map2(names(enrichments), gsea_ridge) %>%
+    bind_rows() %>%
+    ggplot(aes(x=gex, fill=condition)) + 
+    geom_density() +
+    facet_grid(rows="name", scales="free")
+
 }
 
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
