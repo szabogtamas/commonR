@@ -337,7 +337,7 @@ gsea_ridge <- function(enrichment, conditionName){
     enframe() %>%
     unnest() %>%
     mutate(
-      gex = enrichment@geneList[value]
+      gex = enrichment@geneList[value],
       condition = conditionName
     )
 }
