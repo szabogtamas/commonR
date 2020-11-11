@@ -398,8 +398,6 @@ gsea_ridges <- function(enrichments, n_to_show=30){
       head(n = 20)
     topsets[[enrn]] <- topset
   }
-  topsets <- topsets %>%
-    bind_rows()
   
   topsets <- topsets %>%
     bind_rows() %>%
