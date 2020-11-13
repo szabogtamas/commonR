@@ -71,7 +71,12 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "purrr", "ggplot2", "cowplot", "msigdbr", "clusterProfiler", "rlang")){
+for (
+  pk in c(
+    "tidyr", "dplyr", "purrr", "tibble", "ggplot2", "cowplot", "msigdbr",
+    "clusterProfiler", "rlang"
+  )
+){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -341,12 +346,12 @@ gsea_ridges <- function(enrichments, n_to_show=30){
   #' Create ridgeplots showing distribution of gene expression changes in top gene sets
   #' in all separate conditions.
   #' 
-  #' @description ...
+  #' @description Gene expression changes of all genes in a given gene set are shon on 
+  #' a density plot. Color of histograms corresponds to condition.
   #' 
   #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
   #' @return ggplot
-  #' @details ....
- 
+  
   #' @examples
   #' gsea_ridges(enrichment)
 
