@@ -91,7 +91,7 @@ main <- function(opt){
   #' @param opt list. a named list of all command line options; will be passed on 
   #' 
   #' @return Not intended to return anything, but rather save outputs to files.
-  #TODO: Sort out correct usage of ellipses
+  
   outFile <- paste0(opt$outPrefix, opt$outFile) %>%
     gsub("/", "___", .)
   opt$outFile <- NULL
@@ -321,14 +321,14 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
   #' Take top gene sets in a GSEA result and assign gene expression change (or other score)
   #' to each gebe set.
   #' 
-  #' @description ....
+  #' @description Collects scores for all genes in top gene sets for all conditions and
+  #' merges this information into a dataframe that can later be used for plotting.
   #' 
   #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
   #' @param conditionName string. Name of the condition to be shown on plot.
   #' @param topsets character vector. Vector specifying the most enriched gene sets.
   #' @usage gsea_ridge_rich(enrichment, conditionName, topsets)
   #' @return ggplot
-  #' @details ....
  
   #' @examples
   #' gsea_ridge_rich(enrichment, conditionName, topsets)
@@ -352,6 +352,7 @@ gsea_ridges <- function(enrichments, n_to_show=30){
   #' a density plot. Color of histograms corresponds to condition.
   #' 
   #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
+  #' @usage gsea_ridge_rich(enrichments, n_to_show=30)
   #' @return ggplot
   
   #' @examples
