@@ -14,6 +14,7 @@ RUN install2.r --error \
 
 
 RUN R -e "BiocManager::install('HPAanalyze')"
+RUN R -e "BiocManager::install('pathview')"
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('edgeR')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
