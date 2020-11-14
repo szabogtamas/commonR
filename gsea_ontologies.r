@@ -384,7 +384,7 @@ gsea_ridges <- function(enrichments, n_to_show=30){
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
     mutate(
-      Description = substr(Description, 1, 25)
+      name = substr(Description, 1, 25)
     ) %>%
     ggplot(aes(x=gex, fill=condition)) + 
     geom_density()  +
