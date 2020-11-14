@@ -361,14 +361,13 @@ gsea_ridges <- function(enrichments, n_to_show=30){
   topsets <- list()
   for (enrn in names(enrichments)){
     enrichment <- enrichments[[enrn]]
-    topset <- enrichment@result %>%
+    topsets[[enrn]] <- enrichment@result %>%
       mutate(
         absNES = abs(NES),
         group = enrn
       ) %>%
       arrange(desc(absNES)) %>%
       head(n_to_show)
-    topsets[[enrn]] <- topset
   }
   
   topsets <- topsets %>%
@@ -384,6 +383,9 @@ gsea_ridges <- function(enrichments, n_to_show=30){
   enrichments %>%
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
+    mutate(
+      Description = substr(Description, 1, 25)
+    ) %>%
     ggplot(aes(x=gex, fill=condition)) + 
     geom_density()  +
     facet_grid(rows = "name", scales = "free", switch="both") +
