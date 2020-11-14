@@ -316,20 +316,22 @@ gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=30){
     )
 }
 
-gsea_ridge <- function(enrichment, conditionName, topsets){
+gsea_ridge_rich <- function(enrichment, conditionName, topsets){
   
-  #' Create a ridgeplot showing distribution of gene expression changes in top gene sets.
+  #' Take top gene sets in a GSEA result and assign gene expression change (or other score)
+  #' to each gebe set.
   #' 
   #' @description ....
   #' 
   #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
   #' @param conditionName string. Name of the condition to be shown on plot.
-  #' @usage gsea_ridge(enrichment, conditionName)
+  #' @param topsets character vector. Vector specifying the most enriched gene sets.
+  #' @usage gsea_ridge_rich(enrichment, conditionName, topsets)
   #' @return ggplot
   #' @details ....
  
   #' @examples
-  #' gsea_ridge(enrichment, conditionName)
+  #' gsea_ridge_rich(enrichment, conditionName, topsets)
   
   enrichment@geneSets %>%
     .[topsets] %>%
@@ -378,10 +380,8 @@ gsea_ridges <- function(enrichments, n_to_show=30){
     .$ID %>%
     unique()
 
-  print(topsets)
-
   enrichments %>%
-    map2(names(enrichments), gsea_ridge, topsets) %>%
+    map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
     ggplot(aes(x=gex, fill=condition)) + 
     geom_density()  +
