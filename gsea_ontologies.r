@@ -41,7 +41,7 @@ scriptOptionalArgs <- list(
     help="Subdivision of MSigDB."
   ),
   pAdjustMethod = list(
-    default="BH",
+    default="none",
     help="Change this to BH for Bonferroni correction."
   ),
   pvalueCutoff = list(
@@ -239,6 +239,8 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
   names(hitGenes) <- scoreTable[[genesym]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
   hitGenes <- hitGenes[!is.na(hitGenes)]
+  saveRDS(hitGenes, file = "zehits.rds")
+  print(head(scoreTable))
   print(head(hitGenes))
   print(tail(hitGenes))
 
