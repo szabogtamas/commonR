@@ -60,6 +60,10 @@ scriptOptionalArgs <- list(
     default=30,
     help="Number of top gene sets to show on dotplot."
   ),
+  geneset_dist_plot = list(
+    default="box",
+    help="If boxplot or ridgeplot should show distribution of changes in gene sets."
+  ),
   commandRpath = list(
     default="commandR.r",
     help="Path to command line connectivity script (if not in cwd)."
@@ -161,7 +165,8 @@ plot_gsea <- function(
   additional_args <- list(...)
   plot_title <- additional_args[["plot_title"]]
   n_to_show <- additional_args[["n_to_show"]]
-  additional_args <- additional_args[!(names(additional_args) %in% c("plot_title", "n_to_show"))]
+  geneset_dist_plot <- additional_args[["geneset_dist_plot"]]
+  additional_args <- additional_args[!(names(additional_args) %in% c("plot_title", "n_to_show", "geneset_dist_plot"))]
   additional_args[["geneSet"]] <- geneSet
   additional_args[["score_column"]] <- score_column
 
@@ -180,8 +185,11 @@ plot_gsea <- function(
   if(verbose){
     cat("Plotting ridgeplot of top gene sets\n")
   }
-  #p2 <- gsea_ridges(enrichments, n_to_show)
-  p2 <- gsea_boxes(enrichments, n_to_show)
+  if (geneset_dist_plot == "ridge") {
+    p2 <- gsea_ridges(enrichments, n_to_show)
+  } else {
+    p2 <- gsea_boxes(enrichments, n_to_show)
+  }
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
@@ -258,7 +266,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
   #' gsea_enrichdot(enrichmentList)
   #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
 
-  topsets <- enrichment %>%
+  topsets <- enrichmentList %>%
     .$Description %>%
     unique() %>%
     head(n_to_show)
