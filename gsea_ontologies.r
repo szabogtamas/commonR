@@ -113,7 +113,6 @@ main <- function(opt){
 plot_gsea <- function(
   scoreTables,
   geneSet=NULL,
-  emptyRes=NULL,
   score_column=NULL,
   universe=NULL,
   verbose=TRUE,
@@ -129,12 +128,11 @@ plot_gsea <- function(
   #' @param scoreTables list. A named list of dataframes with gene ID in the first column,
   #' symbol in the second
   #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
   #' @param score_column string. Name of column with scores. Third column if not specified.
   #' @param universe character vector. All genes in the organism.
   #' @param verbose logical. Whether progress messages should be printed.
   #' @param ... ellipse. Arguments to be passed on to the enricher function.
-  #' @usage plot_gsea(scoreTables, geneSet=NULL, emptyRes=NULL, verbose=TRUE, ...)
+  #' @usage plot_gsea(scoreTables, geneSet=NULL, verbose=TRUE, ...)
   #' @return ggplot
   #' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
   #' significance, while size shows...
@@ -142,7 +140,7 @@ plot_gsea <- function(
   #' @examples
   #' plot_gsea(scoreTables)
   #' plot_gsea(scoreTables, geneSet)
-  #' plot_gsea(scoreTables, geneSet, emptyRes)
+  #' plot_gsea(scoreTables, geneSet)
   #' plot_gsea(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
   
   if(is.null(geneSet)){
@@ -154,13 +152,6 @@ plot_gsea <- function(
 
   if(is.null(universe)){
     universe <- unique(geneSet$gene_symbol)
-  }
-  
-  if(is.null(emptyRes)){
-    if(verbose){
-      cat("Creating empty compareCluster object\n")
-    }
-    emptyRes <- create_empty_result_object()
   }
   
   if(verbose){
@@ -181,15 +172,10 @@ plot_gsea <- function(
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
 
-  p1 <-  enrichments %>%
-    merge_gsea_enrichments(emptyRes)
-
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <-  enrichments %>%
-    merge_gsea_enrichments(emptyRes) %>%
-    gsea_enrichdot(plot_title, n_to_show)
+  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show)
 
   if(verbose){
     cat("Plotting ridgeplot of top gene sets\n")
@@ -253,53 +239,34 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 }
 
 
-merge_gsea_enrichments <- function(enrichmentList){
-  
-  #' Combine multiple GSEA enrichment results into a common object to be passed to
-  #' dotplot visualization.
-  #' 
-  #' @description Takes a list of GSEA enrichment results, adds columns required by 
-  #' dotplot and combines the result tables into a single table inside a result object.
-  #' 
-  #' @param enrichmentList named list. Enrichment results.
-  #' @usage merge_gsea_enrichments(enrichmentList)
-  #' @return enrichment result as a dataframe
-
-  #' @examples
-  #' merge_gsea_enrichments(enrichmentList)
-
-  enrichmentList %>%
-    map(function(x) x@result) %>%
-    bind_rows() %>%
-    arrange(desc(absNES))
-}
-
-
-gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=20){
+gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
   #' @description A ClusterProfiler enrichment result for multiple conditions and after
   #' GSEA is visualized side-by-side, as dotplot. 
   #' 
-  #' @param enrichment. Result of clusterProfiler::GSEA as dataframe.
+  #' @param enrichmentList named list. Enrichment results.
   #' @param plot_title string. Title of the figure.
   #' @param n_to_show. Maximum number of enriched gene sets to show.
-  #' @usage gsea_enrichdot(enrichment, plot_title="Top gene sets")
+  #' @usage gsea_enrichdot(enrichmentList, plot_title="Top gene sets", n_to_show=20)
   #' @return ggplot
   #' @details Color corresponds to Normalized Enrichment score, while size shows
   #' significance.
   
   #' @examples
-  #' gsea_enrichdot(enrichment)
-  #' gsea_enrichdot(enrichment, plot_title="Top gene sets")
+  #' gsea_enrichdot(enrichmentList)
+  #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
 
   topsets <- enrichment %>%
     .$Description %>%
     unique() %>%
     head(n_to_show)
 
-  enrichment %>%
+  enrichmentList %>%
+    map(function(x) x@result) %>%
+    bind_rows() %>%
+    arrange(desc(absNES)) %>%
     filter(Description %in% topsets) %>%
     ggplot(mtcars, aes(x=group, y=Description, fill=NES, size=absNES)) +
     geom_dotplot(stackdir="center") +
