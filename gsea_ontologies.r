@@ -276,7 +276,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
     bind_rows() %>%
     arrange(desc(absNES)) %>%
     filter(Description %in% topsets) %>%
-    ggplot(mtcars, aes(x=group, y=Description, fill=NES, size=absNES)) +
+    ggplot(aes(x=group, y=Description, fill=NES, size=absNES)) +
     geom_dotplot(stackdir="center") +
     labs(
       title=plot_title,
