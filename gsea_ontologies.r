@@ -180,7 +180,6 @@ plot_gsea <- function(
     additional_args[["conditionName"]] <- condition
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
-  print(names(enrichments))
 
   p1 <-  enrichments %>%
     merge_gsea_enrichments(emptyRes)
@@ -195,7 +194,8 @@ plot_gsea <- function(
   if(verbose){
     cat("Plotting ridgeplot of top gene sets\n")
   }
-  p2 <- gsea_ridges(enrichments, n_to_show)
+  #p2 <- gsea_ridges(enrichments, n_to_show)
+  p2 <- gsea_boxes(enrichments, n_to_show)
 
   if(verbose){
     cat("Combining subplots and saving figure\n")
@@ -239,16 +239,11 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
   names(hitGenes) <- scoreTable[[genesym]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
   hitGenes <- hitGenes[!is.na(hitGenes)]
-  saveRDS(hitGenes, file = "zehits.rds")
-  print(head(scoreTable))
-  print(head(hitGenes))
-  print(tail(hitGenes))
 
   enrichment <- clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
   enrichment@result <- enrichment@result %>%
     mutate(
       absNES = abs(NES),
-      Cluster = conditionName,
       group = conditionName
     ) %>%
     arrange(desc(absNES)) %>%
@@ -258,7 +253,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 }
 
 
-merge_gsea_enrichments <- function(enrichmentList, emptyRes){
+merge_gsea_enrichments <- function(enrichmentList){
   
   #' Combine multiple GSEA enrichment results into a common object to be passed to
   #' dotplot visualization.
@@ -267,49 +262,47 @@ merge_gsea_enrichments <- function(enrichmentList, emptyRes){
   #' dotplot and combines the result tables into a single table inside a result object.
   #' 
   #' @param enrichmentList named list. Enrichment results.
-  #' @param emptyRes result object. An empty result object to be extended with enriched sets.
-  #' @usage merge_gsea_enrichments(enrichmentList, emptyRes)
-  #' @return enrichment result as a multi-condition result object
+  #' @usage merge_gsea_enrichments(enrichmentList)
+  #' @return enrichment result as a dataframe
 
   #' @examples
-  #' merge_gsea_enrichments(enrichmentList, emptyRes)
+  #' merge_gsea_enrichments(enrichmentList)
 
-  compRes <- duplicate(emptyRes)
-  enrichments <- enrichmentList %>%
+  enrichmentList %>%
     map(function(x) x@result) %>%
     bind_rows() %>%
-    arrange(desc(absNES)) %>%
-    mutate(
-      Count = -log10(p.adjust),
-      GeneRatio = -log10(p.adjust),
-      BgRatio = "1/1"
-    )
-  print(enrichments$group)
-  compRes@compareClusterResult <- enrichments
-  return(compRes)
+    arrange(desc(absNES))
 }
 
 
-gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=30){
+gsea_enrichdot <- function(enrichment, plot_title="", n_to_show=20){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
   #' @description A ClusterProfiler enrichment result for multiple conditions and after
   #' GSEA is visualized side-by-side, as dotplot. 
   #' 
-  #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
+  #' @param enrichment. Result of clusterProfiler::GSEA as dataframe.
   #' @param plot_title string. Title of the figure.
   #' @param n_to_show. Maximum number of enriched gene sets to show.
-  #' @usage gsea_enrichdot(enrichment, plot_title="Top gene sets", n_to_show=30)
+  #' @usage gsea_enrichdot(enrichment, plot_title="Top gene sets")
   #' @return ggplot
   #' @details Color corresponds to Normalized Enrichment score, while size shows
   #' significance.
   
   #' @examples
   #' gsea_enrichdot(enrichment)
-  #' gsea_enrichdot(enrichment, plot_title="Top gene sets", n_to_show=30)
+  #' gsea_enrichdot(enrichment, plot_title="Top gene sets")
 
-  clusterProfiler::dotplot(enrichment, showCategory=n_to_show, color="NES") +
+  topsets <- enrichment %>%
+    .$Description %>%
+    unique() %>%
+    head(n_to_show)
+
+  enrichment %>%
+    filter(Description %in% topsets) %>%
+    ggplot(mtcars, aes(x=group, y=Description, fill=NES, size=absNES)) +
+    geom_dotplot(stackdir="center") +
     labs(
       title=plot_title,
       size="-log(p)"
@@ -350,6 +343,63 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
       gex = enrichment@geneList[value],
       condition = conditionName
     )
+}
+
+gsea_boxes <- function(enrichments, n_to_show=30){
+  
+  #' Create ridgeplots showing distribution of gene expression changes in top gene sets
+  #' in all separate conditions.
+  #' 
+  #' @description Gene expression changes of all genes in a given gene set are shon on 
+  #' a density plot. Color of histograms corresponds to condition.
+  #' 
+  #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
+  #' @usage gsea_ridge_rich(enrichments, n_to_show=30)
+  #' @return ggplot
+  
+  #' @examples
+  #' gsea_ridges(enrichment)
+
+  topsets <- list()
+  for (enrn in names(enrichments)){
+    enrichment <- enrichments[[enrn]]
+    topsets[[enrn]] <- enrichment@result %>%
+      mutate(
+        absNES = abs(NES),
+        group = enrn
+      ) %>%
+      arrange(desc(absNES)) %>%
+      head(n_to_show)
+  }
+  
+  topsets <- topsets %>%
+    bind_rows() %>%
+    pivot_wider(values_from=absNES, names_from=group, values_fill=0) %>%
+    rowwise(ID) %>% 
+    mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
+    arrange(desc(meanNES)) %>%
+    head(n_to_show) %>%
+    .$ID %>%
+    unique()
+
+  enrichments %>%
+    map2(names(enrichments), gsea_ridge_rich, topsets) %>%
+    bind_rows() %>%
+    mutate(
+      name = factor(name, levels=topsets),
+      name = substr(name, 1, 35)
+    ) %>%
+    ggplot(aes(x=gex, fill=condition)) + 
+    geom_boxplot(position=position_dodge(1))  +
+    facet_wrap(rows = "name", scales = "free", switch="both") +
+    theme(
+      strip.text.y.left = element_text(size=8, angle = 0),
+      strip.background = element_rect(colour="white", fill="#ffffff"),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank()
+    ) + 
+    labs(x="logFC", y="")
+
 }
 
 gsea_ridges <- function(enrichments, n_to_show=30){
@@ -433,25 +483,6 @@ download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
   geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
   return(geneSet)
-}
-
-create_empty_result_object <- function(){
-  
-  #' Create a ClusterProfile result object that will be extended with multi-enrichement
-  #' result of our actual comparison.
-  #' 
-  #' @description This "empty" mock object is needed because the dotplot method only
-  #' accepts dedicated objects.
-  #' 
-  #' @usage create_empty_result_object()
-  #' @return ClusterProfile result object
-
-  #' @examples
-  #' create_empty_result_object()
-  
-  mydf <- data.frame(Entrez=c('1', '100', '1000', '100101467','100127206', '100128071'), group = c('A', 'A', 'A', 'B', 'B', 'B'))
-  emptyRes <- compareCluster(Entrez~group, data=mydf, fun="enrichGO", 'org.Hs.eg.db')
-  return(emptyRes)
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
