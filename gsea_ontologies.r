@@ -45,7 +45,7 @@ scriptOptionalArgs <- list(
     help="Change this to BH for Bonferroni correction."
   ),
   pvalueCutoff = list(
-    default=1,
+    default=0.9,
     help="Cut-off for p-values."
   ),
   minGSSize = list(
