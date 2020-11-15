@@ -180,7 +180,11 @@ plot_gsea <- function(
     additional_args[["conditionName"]] <- condition
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
-  
+  print(names(enrichments))
+
+  p1 <-  enrichments %>%
+    merge_gsea_enrichments(emptyRes)
+
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
@@ -234,7 +238,10 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
   hitGenes <- scoreTable[[score_column]]
   names(hitGenes) <- scoreTable[[genesym]]
   hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
-  
+  hitGenes <- hitGenes[!is.na(hitGenes)]
+  print(head(hitGenes))
+  print(tail(hitGenes))
+
   enrichment <- clusterProfiler::GSEA(hitGenes, TERM2GENE=geneSet, ...)
   enrichment@result <- enrichment@result %>%
     mutate(
@@ -244,7 +251,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
     ) %>%
     arrange(desc(absNES)) %>%
     head(n=20)
-    
+  
   return(enrichment)
 }
 
@@ -265,7 +272,6 @@ merge_gsea_enrichments <- function(enrichmentList, emptyRes){
   #' @examples
   #' merge_gsea_enrichments(enrichmentList, emptyRes)
 
-
   compRes <- duplicate(emptyRes)
   enrichments <- enrichmentList %>%
     map(function(x) x@result) %>%
@@ -276,6 +282,7 @@ merge_gsea_enrichments <- function(enrichmentList, emptyRes){
       GeneRatio = -log10(p.adjust),
       BgRatio = "1/1"
     )
+  print(enrichments$group)
   compRes@compareClusterResult <- enrichments
   return(compRes)
 }
@@ -384,14 +391,16 @@ gsea_ridges <- function(enrichments, n_to_show=30){
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
     mutate(
-      name = substr(Description, 1, 25)
+      name = factor(name, levels=topsets),
+      name = substr(name, 1, 35)
     ) %>%
     ggplot(aes(x=gex, fill=condition)) + 
     geom_density()  +
     facet_grid(rows = "name", scales = "free", switch="both") +
     scale_x_continuous(limits=c(-2,2)) +
     theme(
-      strip.text.y.left = element_text(angle = 0),
+      strip.text.y.left = element_text(size=8, angle = 0),
+      strip.background = element_rect(colour="white", fill="#ffffff"),
       axis.text.y = element_blank(),
       axis.ticks = element_blank()
     ) + 
