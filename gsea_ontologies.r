@@ -322,18 +322,18 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
 
 gsea_boxes <- function(enrichments, n_to_show=30){
   
-  #' Create ridgeplots showing distribution of gene expression changes in top gene sets
+  #' Create boxplots showing distribution of gene expression changes in top gene sets
   #' in all separate conditions.
   #' 
-  #' @description Gene expression changes of all genes in a given gene set are shon on 
+  #' @description Gene expression changes of all genes in a given gene set are shown on 
   #' a density plot. Color of histograms corresponds to condition.
   #' 
   #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
-  #' @usage gsea_ridge_rich(enrichments, n_to_show=30)
+  #' @usage gsea_boxes(enrichments, n_to_show=30)
   #' @return ggplot
   
   #' @examples
-  #' gsea_ridges(enrichment)
+  #' gsea_boxes(enrichment)
 
   topsets <- list()
   for (enrn in names(enrichments)){
@@ -386,7 +386,7 @@ gsea_ridges <- function(enrichments, n_to_show=30){
   #' a density plot. Color of histograms corresponds to condition.
   #' 
   #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
-  #' @usage gsea_ridge_rich(enrichments, n_to_show=30)
+  #' @usage gsea_ridges(enrichments, n_to_show=30)
   #' @return ggplot
   
   #' @examples
