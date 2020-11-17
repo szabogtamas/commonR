@@ -267,7 +267,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
   #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
 
   save(enrichmentList, file = "rich_list.RData")
-  enrichmentList <- enrichmentList %>%
+  enrichmentList <- enrichmentList %>% # this has to be mapped to the list!
     map(function(x) x@result) %>%
     bind_rows()
     
@@ -280,10 +280,10 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
     arrange(desc(absNES)) %>%
     filter(Description %in% topsets)
 
-  save(rich_plot_dot, file = "rich_dot.RData")
+  save(rich_plot_dot, file = "rich_dot.RData") # Good idea to save, but let us try tsv
   rich_plot_dot %>%
-    ggplot(aes(x=group, y=Description, fill=NES, size=absNES)) +
-    geom_dotplot(stackdir="center") +
+    ggplot(aes(x=group, y=Description, color=NES, size=absNES)) +
+    geom_point() +
     labs(
       title=plot_title,
       size="-log(p)"
@@ -295,8 +295,10 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
     ) +
     theme(
       axis.text.x=element_text(angle=30, hjust=1),
-      axis.text.y=element_text(size=8)
-    )
+      axis.text.y=element_text(size=8),
+      plot.title = element_text(hjust=-2)
+    ) +
+    labs(x="", y="")
 }
 
 gsea_ridge_rich <- function(enrichment, conditionName, topsets){
