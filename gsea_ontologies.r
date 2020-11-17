@@ -368,18 +368,17 @@ gsea_boxes <- function(enrichments, n_to_show=30){
       name = substr(name, 1, 35)
     ) 
   
-  save(rich_plot_box, file = "rich_box.RData")
+  save(rich_plot_box, file = "rich_box.RData") # Save but tsv!
   rich_plot_box %>%
-    ggplot(aes(x=gex, fill=condition)) + 
-    geom_boxplot(position=position_dodge(1))  +
-    facet_wrap(vars(name), scales="free", switch="both") +
+    ggplot(aes(x=name, y=gex, fill=condition)) + 
+    geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
     theme(
-      strip.text.y.left = element_text(size=8, angle = 0),
-      strip.background = element_rect(colour="white", fill="#ffffff"),
-      axis.text.y = element_blank(),
-      axis.ticks = element_blank()
+      axis.ticks = element_blank(),
+      axis.text.x=element_text(size=7, angle=30, hjust=1),
+      legend.position = "left"
     ) + 
-    labs(x="logFC", y="")
+    ylim(-1, 1) +
+    labs(x="", y="logFC")
 
 }
 
