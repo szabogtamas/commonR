@@ -266,14 +266,17 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
   #' gsea_enrichdot(enrichmentList)
   #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
 
+  save(enrichmentList, file = "rich_list.RData")
+  enrichmentList <- enrichmentList %>%
+    map(function(x) x@result) %>%
+    bind_rows()
+    
   topsets <- enrichmentList %>%
     .$Description %>%
     unique() %>%
     head(n_to_show)
 
   rich_plot_dot <- enrichmentList %>%
-    map(function(x) x@result) %>%
-    bind_rows() %>%
     arrange(desc(absNES)) %>%
     filter(Description %in% topsets)
 
