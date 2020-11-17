@@ -271,11 +271,14 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
     unique() %>%
     head(n_to_show)
 
-  enrichmentList %>%
+  rich_plot_dot <- enrichmentList %>%
     map(function(x) x@result) %>%
     bind_rows() %>%
     arrange(desc(absNES)) %>%
-    filter(Description %in% topsets) %>%
+    filter(Description %in% topsets)
+
+  save(rich_plot_dot, file = "rich_dot.RData")
+  rich_plot_dot %>%
     ggplot(aes(x=group, y=Description, fill=NES, size=absNES)) +
     geom_dotplot(stackdir="center") +
     labs(
@@ -357,16 +360,19 @@ gsea_boxes <- function(enrichments, n_to_show=30){
     .$ID %>%
     unique()
 
-  enrichments %>%
+  rich_plot_box <- enrichments %>%
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
     mutate(
       name = factor(name, levels=topsets),
       name = substr(name, 1, 35)
-    ) %>%
+    ) 
+  
+  save(rich_plot_box, file = "rich_box.RData")
+  rich_plot_box %>%
     ggplot(aes(x=gex, fill=condition)) + 
     geom_boxplot(position=position_dodge(1))  +
-    facet_wrap(rows = "name", scales = "free", switch="both") +
+    facet_wrap(vars(name), scales="free", switch="both") +
     theme(
       strip.text.y.left = element_text(size=8, angle = 0),
       strip.background = element_rect(colour="white", fill="#ffffff"),
