@@ -246,7 +246,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 }
 
 
-gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
+gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
@@ -265,7 +265,8 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
   #' @examples
   #' gsea_enrichdot(enrichmentList)
   #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
-    
+
+  n_to_show <- as.integer(n_to_show / length(enrichmentList))  
   topsets <- enrichmentList %>%
     map(function(x) unique(x@result$Description)) %>%
     map(head, n_to_show ) %>%
@@ -299,6 +300,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
     ) +
     labs(x="", y="")
 }
+
 
 gsea_ridge_rich <- function(enrichment, conditionName, topsets){
   
