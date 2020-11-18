@@ -240,8 +240,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
       absNES = abs(NES),
       group = conditionName
     ) %>%
-    arrange(desc(absNES)) %>%
-    head(n=20)
+    arrange(desc(absNES))
   
   return(enrichment)
 }
@@ -252,7 +251,8 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
   #' @description A ClusterProfiler enrichment result for multiple conditions and after
-  #' GSEA is visualized side-by-side, as dotplot. 
+  #' GSEA is visualized side-by-side, as dotplot. It is essential that dataframes in the
+  #' results are sorted by a score (absNES) preferabily.
   #' 
   #' @param enrichmentList named list. Enrichment results.
   #' @param plot_title string. Title of the figure.
@@ -265,22 +265,21 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=20){
   #' @examples
   #' gsea_enrichdot(enrichmentList)
   #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
-
-  save(enrichmentList, file = "rich_list.RData")
-  enrichmentList <- enrichmentList %>% # this has to be mapped to the list!
-    map(function(x) x@result) %>%
-    bind_rows()
     
   topsets <- enrichmentList %>%
-    .$Description %>%
-    unique() %>%
-    head(n_to_show)
+    map(function(x) unique(x@result$Description)) %>%
+    map(head, n_to_show ) %>%
+    bind_rows() %>%
+    pivot_longer(everything()) %>%
+    .$value %>%
+    unique()
 
   rich_plot_dot <- enrichmentList %>%
+    map(function(x) x@result) %>%
+    bind_rows() %>%
     arrange(desc(absNES)) %>%
     filter(Description %in% topsets)
-
-  save(rich_plot_dot, file = "rich_dot.RData") # Good idea to save, but let us try tsv
+  
   rich_plot_dot %>%
     ggplot(aes(x=group, y=Description, color=NES, size=absNES)) +
     geom_point() +
@@ -373,7 +372,6 @@ gsea_boxes <- function(enrichments, n_to_show=30){
       name = substr(name, 1, 35)
     ) 
   
-  save(rich_plot_box, file = "rich_box.RData") # Save but tsv!
   rich_plot_box %>%
     ggplot(aes(x=name, y=gex, fill=condition)) + 
     geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
