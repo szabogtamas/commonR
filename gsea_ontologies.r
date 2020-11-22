@@ -96,6 +96,12 @@ for (
   }
 }
 
+default_colors <- c(
+  '#1a476f', '#90353b', '#55752f', '#e37e00', '#6e8e84', '#c10534',
+  '#938dd2', '#cac27e', '#a0522d', '#7b92a8', '#2d6d66', '#9c8847',
+  '#bfa19c', '#ffd200', '#d9e6eb'
+)
+
 ### Define a main function that will only be executed if called from command line
 main <- function(opt){
   
@@ -167,6 +173,13 @@ plot_gsea <- function(
   if(is.null(universe)){
     universe <- unique(geneSet$gene_symbol)
   }
+
+  if(is.null(conditionOrder)){
+    conditionOrder <- names(scoreTables)
+  }
+  if(is.null(conditionColors)){
+    conditionColors <- default_colors
+  }
   
   if(verbose){
     cat("Looking for gene set enrichments\n")
@@ -175,8 +188,12 @@ plot_gsea <- function(
   additional_args <- list(...)
   plot_title <- additional_args[["plot_title"]]
   n_to_show <- additional_args[["n_to_show"]]
+  conditionOrder <- additional_args[["conditionOrder"]]
+  conditionColors <- additional_args[["conditionColors"]]
   geneset_dist_plot <- additional_args[["geneset_dist_plot"]]
-  additional_args <- additional_args[!(names(additional_args) %in% c("plot_title", "n_to_show", "geneset_dist_plot"))]
+  additional_args <- additional_args[!(names(additional_args) %in% c(
+    "plot_title", "n_to_show", "geneset_dist_plot", "conditionOrder", "conditionColors"
+  ))] 
   additional_args[["geneSet"]] <- geneSet
   additional_args[["score_column"]] <- score_column
 
@@ -190,7 +207,7 @@ plot_gsea <- function(
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show)
+  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show, conditionOrder)
 
   if(verbose){
     cat("Plotting ridgeplot of top gene sets\n")
@@ -198,7 +215,7 @@ plot_gsea <- function(
   if (geneset_dist_plot == "ridge") {
     p2 <- gsea_ridges(enrichments, n_to_show)
   } else {
-    p2 <- gsea_boxes(enrichments, n_to_show)
+    p2 <- gsea_boxes(enrichments, n_to_show, conditionOrder, conditionColors)
   }
 
   if(verbose){
@@ -256,7 +273,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 }
 
 
-gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30){
+gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditionOrder=NULL){
 
   #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
   #' 
@@ -267,7 +284,8 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30){
   #' @param enrichmentList named list. Enrichment results.
   #' @param plot_title string. Title of the figure.
   #' @param n_to_show. Maximum number of enriched gene sets to show.
-  #' @usage gsea_enrichdot(enrichmentList, plot_title="Top gene sets", n_to_show=20)
+  #' @param conditionOrder character. Oreder of experimental conditions.
+  #' @usage gsea_enrichdot(enrichmentList, plot_title="Top gene sets", n_to_show=20, conditionOrder=NULL)
   #' @return ggplot
   #' @details Color corresponds to Normalized Enrichment score, while size shows
   #' significance.
@@ -275,6 +293,10 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30){
   #' @examples
   #' gsea_enrichdot(enrichmentList)
   #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
+
+  if(is.null(conditionOrder)){
+    conditionOrder <- names(enrichments)
+  }
 
   n_to_show <- as.integer(n_to_show / length(enrichmentList))  
   topsets <- enrichmentList %>%
@@ -289,7 +311,10 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30){
     map(function(x) x@result) %>%
     bind_rows() %>%
     arrange(desc(absNES)) %>%
-    filter(Description %in% topsets)
+    filter(Description %in% topsets) %>%
+    mutate(
+      group = factor(group, levels=conditionOrder)
+    )
   
   rich_plot_dot %>%
     ggplot(aes(x=group, y=Description, color=NES, size=absNES)) +
@@ -339,7 +364,7 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
     )
 }
 
-gsea_boxes <- function(enrichments, n_to_show=30){
+gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL){
   
   #' Create boxplots showing distribution of gene expression changes in top gene sets
   #' in all separate conditions.
@@ -347,12 +372,22 @@ gsea_boxes <- function(enrichments, n_to_show=30){
   #' @description Gene expression changes of all genes in a given gene set are shown on 
   #' a density plot. Color of histograms corresponds to condition.
   #' 
-  #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
-  #' @usage gsea_boxes(enrichments, n_to_show=30)
+  #' @param enrichment dataframe. Result of clusterProfiler::GSEA for multiple conditions.
+  #' @param n_to_show integer. Result of clusterProfiler::GSEA for multiple conditions.
+  #' @param conditionOrder character. Oreder of experimental conditions.
+  #' @param conditionColors character. Colors associated to each condition.
+  #' @usage gsea_boxes(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL)
   #' @return ggplot
   
   #' @examples
   #' gsea_boxes(enrichment)
+
+  if(is.null(conditionOrder)){
+    conditionOrder <- names(enrichments)
+  }
+  if(is.null(conditionColors)){
+    conditionColors <- default_colors
+  }
 
   topsets <- list()
   for (enrn in names(enrichments)){
@@ -373,13 +408,17 @@ gsea_boxes <- function(enrichments, n_to_show=30){
     mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
     arrange(desc(meanNES)) %>%
     head(n_to_show) %>%
-    .$ID %>%
+    print(.$ID) %>%
+    #.$ID %>%
     unique()
+
+  print(topSets)
 
   rich_plot_box <- enrichments %>%
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
     mutate(
+      condition = factor(condition, levels=conditionOrder),
       name = factor(name, levels=topsets),
       name = substr(name, 1, 35)
     ) 
@@ -387,6 +426,7 @@ gsea_boxes <- function(enrichments, n_to_show=30){
   rich_plot_box %>%
     ggplot(aes(x=name, y=gex, fill=condition)) + 
     geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
+    scale_fill_manual(values=conditionColors) +
     theme(
       axis.ticks = element_blank(),
       axis.text.x=element_text(size=7, angle=30, hjust=1),
