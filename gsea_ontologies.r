@@ -519,6 +519,8 @@ download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt
 
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
+  geneSet$gs_name <- gsub('KEGG_', '', geneSet$gs_name)
+  geneSet$gs_name <- gsub('HALLMARK_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
   geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
   return(geneSet)
