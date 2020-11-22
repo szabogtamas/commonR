@@ -217,7 +217,7 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
   as.ggplot(vjust=0, scale=1) +
     theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
   
-  if(is.null(normalized_counts)){
+  if(TRUE){ #if(is.null(normalized_counts)){
     normalized_counts <- y %>%
       cpm()+1 %>%
       log2()
