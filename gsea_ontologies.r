@@ -162,7 +162,7 @@ plot_gsea <- function(
   #' plot_gsea(scoreTables, geneSet)
   #' plot_gsea(scoreTables, geneSet)
   #' plot_gsea(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
-  
+
   if(is.null(geneSet)){
     if(verbose){
       cat("Downloading deafault ontology set\n")
@@ -174,8 +174,15 @@ plot_gsea <- function(
     universe <- unique(geneSet$gene_symbol)
   }
 
+  if (!exists("conditionOrder")){
+    conditionOrder <- names(scoreTables)
+  }
   if(is.null(conditionOrder)){
     conditionOrder <- names(scoreTables)
+  }
+
+  if (!exists("conditionColors")){
+    conditionColors <- default_colors
   }
   if(is.null(conditionColors)){
     conditionColors <- default_colors
@@ -408,11 +415,8 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
     mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
     arrange(desc(meanNES)) %>%
     head(n_to_show) %>%
-    print(.$ID) %>%
-    #.$ID %>%
+    .$ID %>%
     unique()
-
-  print(topSets)
 
   rich_plot_box <- enrichments %>%
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
