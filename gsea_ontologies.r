@@ -12,14 +12,24 @@ scriptMandatoryArgs <- list(
   outFile = list(
     abbr="-o",
     help="Base name for output files."
-  ),
-  outPrefix = list(
-    abbr="-p",
-    help="Prefix for output files."
   )
 )
 
 scriptOptionalArgs <- list(
+  outPrefix = list(
+    abbr="-p",
+    default="",
+    help="Prefix for output files."
+  ),
+  conditionOrder = list(
+    default=NULL,
+    help="Prefix for output files."
+  ),
+  conditionColors = list(
+    default=NULL,
+    type="vector",
+    help="Colors for points belonging to a given condition on the FC distribution plot."
+  ),
   score_column = list(
     default="logFC",
     help="Title to be put over the first subfigure."
