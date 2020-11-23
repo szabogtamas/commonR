@@ -43,11 +43,11 @@ scriptOptionalArgs <- list(
     help="Organism name where to look for gene symbols."
   ),
   msig_category = list(
-    default="C5",
+    default="H",
     help="Main division of MSigDB."
   ),
   msig_subcategory = list(
-    default="BP",
+    default=NULL,
     help="Subdivision of MSigDB."
   ),
   pAdjustMethod = list(
@@ -117,9 +117,12 @@ main <- function(opt){
     cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
   p <- do.call(plot_gsea, opt[!(names(opt) %in% c("msig_category", "msig_subcategory", "msig_species"))])
+
   if(opt$verbose){
-    cat("Saving figure\n")
+    cat("Combining subplots and saving figure\n")
   }
+  p <- plot_grid(p$genedot, p$setchange, nrow=2, labels="AUTO")
+
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
@@ -138,7 +141,7 @@ main <- function(opt){
 #' @param verbose logical. Whether progress messages should be printed.
 #' @param ... ellipse. Arguments to be passed on to the enricher function.
 #' @usage plot_gsea(scoreTables, geneSet=NULL, verbose=TRUE, ...)
-#' @return ggplot
+#' @return list two output plots and also the enrichments
 #' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
 #' significance, while size shows...
 
@@ -203,7 +206,7 @@ plot_gsea <- function(
     additional_args[["conditionName"]] <- condition
     enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
   }
-
+  
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
@@ -217,13 +220,8 @@ plot_gsea <- function(
   } else {
     p2 <- gsea_boxes(enrichments, n_to_show, conditionOrder, conditionColors)
   }
-
-  if(verbose){
-    cat("Combining subplots and saving figure\n")
-  }
-  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
   
-  invisible(p)
+  invisible(list(genedot=p1, setchange=p2, enrichments=enrichments))
 
 }
 
@@ -244,8 +242,8 @@ plot_gsea <- function(
 #' @return encrichement result
 
 #' @examples
-#' gsea_enrichment(scoreTable, conditionName, geneSet)
-#' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
+#' gsea_enrichments(scoreTable, conditionName, geneSet)
+#' gsea_enrichments(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
 gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
 
   cn <- colnames(scoreTable)
@@ -293,7 +291,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditionOrder=NULL){
 
   if(is.null(conditionOrder)){
-    conditionOrder <- names(enrichments)
+    conditionOrder <- names(enrichmentList)
   }
 
   n_to_show <- as.integer(n_to_show / length(enrichmentList))  

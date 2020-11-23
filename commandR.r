@@ -24,10 +24,10 @@ assignInNamespace(x="draw_colnames", value="draw_colnames_30", ns=asNamespace("p
 
 #' Save a plot, preferably one page, into pdf.
 #' 
-#' @param figure plot (ggplot or cowplot). The plot to be saved.
-#' @param filename_base string. File name, with path and prefix, but no extension. 
-#' @param height integer. Height of the output canvas.
-#' @param width integer. Width of the output canvas. 
+#' @param figure plot (ggplot or cowplot).   The plot to be saved.
+#' @param filename_base string.              File name, with path and prefix, but no extension. 
+#' @param height integer.                    Height of the output canvas.
+#' @param width integer.                     Width of the output canvas. 
 #' 
 #' @return NULL.
 fig2pdf <- function(figure, filename_base, height, width){
@@ -41,11 +41,11 @@ fig2pdf <- function(figure, filename_base, height, width){
 #' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
 #' friendly IDs, the second column can be a more readable mapping, provided by relabels.
 #' 
-#' @param tab dta.fram. The table to be saved.
-#' @param filename_base string. File name, with path and prefix, but no extension. 
-#' @param primary_id string. Column header for row names.
-#' @param secondary_id string. Column header for second column with human-friendly labels.
-#' @param relabels named vector. Mapping from IDs to human-friendly labels. 
+#' @param tab data.frame.         The table to be saved.
+#' @param filename_base string.   File name, with path and prefix, but no extension. 
+#' @param primary_id string.      Column header for row names.
+#' @param secondary_id string.    Column header for second column with human-friendly labels.
+#' @param relabels named vector.  Mapping from IDs to human-friendly labels. 
 #' 
 #' @return NULL.
 genetab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="Symbol", relabels=NULL){
@@ -68,28 +68,68 @@ genetab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="S
 }
 
 
-if (!interactive()) {
-  
-  # Initialize parser with verbosity and description of script
-  parser <- OptionParser(usage=paste0("%prog [options]\nDescription:\n  ", scriptDescription))
-  parser <- add_option(
-    parser,
-    c("-v", "--verbose"),
-    action="store_true",
-    default=FALSE,
-    help="Print some progress messages to stdout."
-    )
-  parser <- add_option(
-    parser,
-    c("-q", "--quietly"),
-    action="store_false",
-    dest="verbose",
-    help="Create figures quietly, without printing to stdout."
-    )
+#' Read multiple tables into a named list.
+#' 
+#' @param opt list.  Arguments passed from command line.
+#' @param rn string. Name of the actual argument, specifying table names and paths.
+#' @param rg list.   Argument definitions.
+#' @param rv list.   Argument value. Useful in notebook. Note that rg will have to be the whole list in this case.
+#' 
+#' @return list.
+parser4tsv <- function(opt, rn, rg, rv=NULL){
+  nl <- list()
+  if (is.null(rv)){
+    rv <- opt[[rn]]
+  } else {
+    rg <- rg[[rn]]
+  }
+  sl <- unlist(strsplit(rv, ",", fixed=TRUE))
+  n <- 0
+  for (x in sl){
+    n <- n+1
+    x <- unlist(strsplit(x, ":", fixed=TRUE))
+    if (length(x) > 1){
+      nl[[x[1]]] <- do.call(read.csv, c(list(x[2]), rg[["readoptions"]]))
+    } else {
+      nl[[paste0("Condition_", n)]] <- do.call(read.csv, c(list(x[1]), rg[["readoptions"]]))
+    }
+  }
+  opt[[rn]] <- nl
+  invisible(opt)
+}
 
-  # Add arguments to parser
+
+#' Convert string into nested list.
+#' 
+#' @param opt list.  Arguments passed from command line.
+#' @param rn string. Name of the actual argument, specifying table names and paths.
+#' 
+#' @return list.
+parser4nested <- function(opt, rn){
+  nl <- list()
+  sl <- unlist(strsplit(opt[[rn]], ":", fixed=TRUE))
+  for (x in sl){
+    x <- unlist(strsplit(x, ",", fixed=TRUE))
+    if (length(sl) > 1){
+      nl[[x[1]]] <- x[2:length(x)]
+    } else {
+      nl[[1]] <- x
+    }
+  }
+  opt[[rn]] <- nl
+  invisible(opt)
+}
+
+
+#' Remove custom argument features that are not understood by arg_parse.
+#' 
+#' @param parser object.  An arg_parse parser instance.
+#' @param arg_defs list.  Argument definitions at the beginning of the script.
+#' 
+#' @return list.
+parser4arglist <- function(parser, arg_defs){
   an <- 0
-  for (al in list(scriptMandatoryArgs, scriptOptionalArgs)){
+  for (al in arg_defs){
     for (rgn in names(al)){
       rg <- al[[rgn]]
       if (an < 1){
@@ -113,55 +153,57 @@ if (!interactive()) {
       rl <- c(rl, rg)
       parser <- do.call(add_option, rl)
       an <- an +1
-      
     }
   }
+}
+
+if (!interactive()) {
+  
+  # Initialize parser with verbosity and description of script
+  parser <- OptionParser(usage=paste0("%prog [options]\nDescription:\n  ", scriptDescription))
+  parser <- add_option(
+    parser,
+    c("-v", "--verbose"),
+    action="store_true",
+    default=FALSE,
+    help="Print some progress messages to stdout."
+    )
+  parser <- add_option(
+    parser,
+    c("-q", "--quietly"),
+    action="store_false",
+    dest="verbose",
+    help="Create figures quietly, without printing to stdout."
+    )
+
+  # Add custom arguments to parser
+  parser <- parser4arglist(parser, list(scriptMandatoryArgs, scriptOptionalArgs))
 
   # Parse command line options and split up lists or nested lists
   opt <- parse_args(parser)
-  for (rn in names(c(scriptMandatoryArgs, scriptOptionalArgs))){
-    rg <- c(scriptMandatoryArgs, scriptOptionalArgs)[[rn]]
+
+  #Parse inputs for certain types (lists and tables)
+  all_arguments <- c(scriptMandatoryArgs, scriptOptionalArgs)
+  for (rn in names(all_arguments)){
+    rg <- all_arguments[[rn]]
     if ("type" %in% names(rg) & !is.null(opt[[rn]])) {
-        if (rg[["type"]] %in% c("vector", "nested", "table", "tables") ) {
-          if (rg[["type"]] == "vector") {
-            opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
+      if (rg[["type"]] %in% c("vector", "nested", "table", "tables") ) {
+        if (rg[["type"]] == "vector") {
+          opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
+        } else {
+          if (rg[["type"]] == "nested") {
+            opt <- parser4nested(opt, rn)
           } else {
-            if (rg[["type"]] == "nested") {
-              nl <- list()
-              sl <- unlist(strsplit(opt[[rn]], ":", fixed=TRUE))
-              for (x in sl){
-                x <- unlist(strsplit(x, ",", fixed=TRUE))
-                if (length(sl) > 1){
-                  nl[[x[1]]] <- x[2:length(x)]
-                } else {
-                  nl[[1]] <- x
-                }
-              }
-              opt[[rn]] <- nl
+            if (rg[["type"]] == "tables") {
+              opt <- parser4tsv(opt, rn, rg)
             } else {
-              if (rg[["type"]] == "tables") {
-                nl <- list()
-                sl <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
-                n <- 0
-                for (x in sl){
-                  n <- n+1
-                  x <- unlist(strsplit(x, ":", fixed=TRUE))
-                  if (length(x) > 1){
-                    nl[[x[1]]] <- do.call(read.csv, c(list(x[2]), rg[["readoptions"]]))
-                  } else {
-                    nl[[paste0("Condition_", n)]] <- do.call(read.csv, c(list(x[1]), rg[["readoptions"]]))
-                  }
-                }
-                opt[[rn]] <- nl
-              } else {
-                opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
-              }
+              opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
             }
           }
         }
       }
+    }
   }
-  
 
   # Check if mandatory arguments are present
   passed_args <- opt[names(scriptMandatoryArgs)]
