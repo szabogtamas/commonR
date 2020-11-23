@@ -418,7 +418,7 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
     ggplot(aes(x=name, y=gex, fill=condition)) + 
     geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
     scale_fill_manual(values=conditionColors, drop=FALSE) +
-    scale_x_discrete(limits=topsets) +
+    scale_x_discrete(limits=rev(topsets)) +
     theme(
       axis.ticks = element_blank(),
       axis.text.x=element_text(size=7, angle=30, hjust=1),
@@ -431,7 +431,7 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
 
 
 #' Create ridgeplots showing distribution of gene expression changes in top gene sets
-#' in all separate conditions.
+#' in all separate conditions. Needs improvement...
 #' 
 #' @description Gene expression changes of all genes in a given gene set are shon on 
 #' a density plot. Color of histograms corresponds to condition.
