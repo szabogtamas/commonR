@@ -48,21 +48,14 @@ for (pk in c("tidyr", "dplyr", "purrr", "tibble", "edgeR", "pheatmap", "Enhanced
   }
 }
 
-default_colors <- c(
-  '#1a476f', '#90353b', '#55752f', '#e37e00', '#6e8e84', '#c10534',
-  '#938dd2', '#cac27e', '#a0522d', '#7b92a8', '#2d6d66', '#9c8847',
-  '#bfa19c', '#ffd200', '#d9e6eb'
-)
 
-### Define a main function that will only be executed if called from command line
+#' The main function of the script, executed only if called from command line.
+#' Calls subfunctions according to supplied command line arguments.
+#' 
+#' @param opt list. a named list of all command line options; will be passed on 
+#' 
+#' @return Not intended to return enything, but rather save outputs to files.
 main <- function(opt){
-  
-  #' The main function of the script, executed only if called from command line.
-  #' Calls subfunctions according to supplied command line arguments.
-  #' 
-  #' @param opt list. a named list of all command line options; will be passed on 
-  #' 
-  #' @return Not intended to return enything, but rather save outputs to files.
   
   outFile <- opt$outFile
   opt$outFile <- NULL
@@ -99,19 +92,18 @@ main <- function(opt){
   invisible(NULL)
 }
 
-### The actual working horse, called by main()
+
+#' Runs DE analysis with edger on a count matrix. Condition labels should be in the
+#' order as samples appear in columns.
+#' 
+#' @param readCounts data.frame. The count matrix; first column becoming the index, second labels.
+#' @param conditionLabels character vector. Experimental condition labels. 
+#' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
+#' @param conditionColors character vector. Color associated to each experimental condition. 
+#' @param ... Arguments inherited from command line but not used by this function. 
+#' 
+#' @return Hitlists.
 testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, ...){
-  
-  #' Runs DE analysis with edger on a count matrix. Condition labels should be in the
-  #' order as samples appear in columns.
-  #' 
-  #' @param readCounts data.frame. The count matrix; first column becoming the index, second labels.
-  #' @param conditionLabels character vector. Experimental condition labels. 
-  #' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
-  #' @param conditionColors character vector. Color associated to each experimental condition. 
-  #' @param ... Arguments inherited from command line but not used by this function. 
-  #' 
-  #' @return Hitlists.
 
   ### Start by parsing inputs and setting some defaults
   if(is.null(conditionOrder)){
@@ -179,16 +171,15 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 }
 
 
+#' Create an overview figure with a summary heatmap and a PCA plot.
+#' 
+#' @param y edgeR matrix. Count matrix in EdgeR after normalization and dispersion calculation.
+#' @param conditions named vector. All the conditions corresponding to matrix columns.
+#' @param conditionColors named vector. Color codes for conditions. 
+#' @param normalized_counts matrix. Counts normalized as logCPM; computed from y if not supplied.
+#' 
+#' @return ggplotified EdgeR MD plot.
 draw_overview_panel <- function(y, conditions, conditionColors, normalized_counts = NULL){
-
-  #' Create an overview figure with a summary heatmap and a PCA plot.
-  #' 
-  #' @param y edgeR matrix. Count matrix in EdgeR after normalization and dispersion calculation.
-  #' @param conditions named vector. All the conditions corresponding to matrix columns.
-  #' @param conditionColors named vector. Color codes for conditions. 
-  #' @param normalized_counts matrix. Counts normalized as logCPM; computed from y if not supplied.
-  #' 
-  #' @return ggplotified EdgeR MD plot.
 
   y <<- y
   mds_cls <<- conditionColors[conditions]
@@ -257,15 +248,14 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
 }
 
 
+#' Create a multifigure panel with volcano and MD on the left and heatmap on the right.
+#' 
+#' @param heatm ggplot. Heatmap of top genes in the comparison.
+#' @param volcano ggplot. Volcano plot summary of the comparison.
+#' @param mdp ggplot. MD plot for QC purpose.
+#' 
+#' @return ggplotified EdgeR MD plot.
 draw_summary_panel <- function(heatm, volcano, mdp){
-
-  #' Create a multifigure panel with volcano and MD on the left and heatmap on the right.
-  #' 
-  #' @param heatm ggplot. Heatmap of top genes in the comparison.
-  #' @param volcano ggplot. Volcano plot summary of the comparison.
-  #' @param mdp ggplot. MD plot for QC purpose.
-  #' 
-  #' @return ggplotified EdgeR MD plot.
   
     plot_grid(
       plot_grid(volcano, mdp, labels="AUTO", nrow=2, rel_heights=c(2, 1)),
@@ -278,13 +268,12 @@ draw_summary_panel <- function(heatm, volcano, mdp){
 }
 
 
+#' Draws an MD (mean vs. difference) plot for a given comparison.
+#' 
+#' @param de_test_result edgeR result. DE result of comparison for a single coef.
+#' 
+#' @return ggplotified EdgeR MD plot.
 draw_summary_mdplot <- function(de_test_result){
-
-  #' Draws an MD (mean vs. difference) plot for a given comparison.
-  #' 
-  #' @param de_test_result edgeR result. DE result of comparison for a single coef.
-  #' 
-  #' @return ggplotified EdgeR MD plot.
   
   de_test_result <<- de_test_result
   p <- expression(
@@ -303,19 +292,18 @@ draw_summary_mdplot <- function(de_test_result){
 }
 
 
+#' Draws a summary volcano plot for showing change for all genes in a given comparison 
+#' of a pair of conditions (one always being control).
+#' 
+#' @param result data.frame. Table of DE results after topTags for a single coef.
+#' @param condition string. Experimental condition we want to compare to control. 
+#' @param conditions factor. All the conditions, corresponding.
+#' @param geneDict named vector. Names to be shown if renamed.
+#' @param topNgene integer. How many genes should be shown on the Volcano plot. 
+#' @param ... arguments to be passed on to the EnhancedVolcano call. 
+#' 
+#' @return Hitlists.
 draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, topNgene=25, ...){
-
-  #' Draws a summary volcano plot for showing change for all genes in a given comparison 
-  #' of a pair of conditions (one always being control).
-  #' 
-  #' @param result data.frame. Table of DE results after topTags for a single coef.
-  #' @param condition string. Experimental condition we want to compare to control. 
-  #' @param conditions factor. All the conditions, corresponding.
-  #' @param geneDict named vector. Names to be shown if renamed.
-  #' @param topNgene integer. How many genes should be shown on the Volcano plot. 
-  #' @param ... arguments to be passed on to the EnhancedVolcano call. 
-  #' 
-  #' @return Hitlists.
   
   if(is.null(geneDict)){
     res$gene <- rownames(res)
@@ -364,18 +352,17 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, topN
 }
 
 
+#' Draws a summary heatmap of the top 50 genes for a pair of conditions (one always 
+#' being control).
+#' 
+#' @param result data.frame. Table of DE results after topTags for a single coef.
+#' @param condition string. Experimental condition we want to compare to control. 
+#' @param conditions factor. All the conditions, corresponding columns in count matrix.
+#' @param normalized_counts matrix. Normalized counts to be shown on the heatmap.
+#' @param conditionColors named vector. Color codes for conditions. 
+#' 
+#' @return Hitlists.
 draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, conditionColors, geneDict){
-  
-  #' Draws a summary heatmap of the top 50 genes for a pair of conditions (one always 
-  #' being control).
-  #' 
-  #' @param result data.frame. Table of DE results after topTags for a single coef.
-  #' @param condition string. Experimental condition we want to compare to control. 
-  #' @param conditions factor. All the conditions, corresponding columns in count matrix.
-  #' @param normalized_counts matrix. Normalized counts to be shown on the heatmap.
-  #' @param conditionColors named vector. Color codes for conditions. 
-  #' 
-  #' @return Hitlists.
   
   samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
   annots <- data.frame(condition=as.character(conditions[samples_to_show]))

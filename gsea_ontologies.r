@@ -96,21 +96,14 @@ for (
   }
 }
 
-default_colors <- c(
-  '#1a476f', '#90353b', '#55752f', '#e37e00', '#6e8e84', '#c10534',
-  '#938dd2', '#cac27e', '#a0522d', '#7b92a8', '#2d6d66', '#9c8847',
-  '#bfa19c', '#ffd200', '#d9e6eb'
-)
 
-### Define a main function that will only be executed if called from command line
+#' The main function of the script, executed only if called from command line.
+#' Calls subfunctions according to supplied command line arguments.
+#' 
+#' @param opt list. a named list of all command line options; will be passed on 
+#' 
+#' @return Not intended to return anything, but rather save outputs to files.
 main <- function(opt){
-  
-  #' The main function of the script, executed only if called from command line.
-  #' Calls subfunctions according to supplied command line arguments.
-  #' 
-  #' @param opt list. a named list of all command line options; will be passed on 
-  #' 
-  #' @return Not intended to return anything, but rather save outputs to files.
   
   outFile <- paste0(opt$outPrefix, opt$outFile) %>%
     gsub("/", "___", .)
@@ -130,6 +123,30 @@ main <- function(opt){
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
+
+#' Create a one-page figure showing top enriched gene sets (pathways) based on GSEA.
+#' 
+#' @description Downoads gene set information from MSigDB for a given species, runs
+#' Gene Set Enrichment Analysis and compiles a figure with 2 subplots: dotplot of gene
+#' sets and ridgeplot showing distribution of gene expression change in top gene sets.
+#' 
+#' @param scoreTables list. A named list of dataframes with gene ID in the first column,
+#' symbol in the second
+#' @param geneSet dataframe. Gene set membership of genes.
+#' @param score_column string. Name of column with scores. Third column if not specified.
+#' @param universe character vector. All genes in the organism.
+#' @param verbose logical. Whether progress messages should be printed.
+#' @param ... ellipse. Arguments to be passed on to the enricher function.
+#' @usage plot_gsea(scoreTables, geneSet=NULL, verbose=TRUE, ...)
+#' @return ggplot
+#' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
+#' significance, while size shows...
+
+#' @examples
+#' plot_gsea(scoreTables)
+#' plot_gsea(scoreTables, geneSet)
+#' plot_gsea(scoreTables, geneSet)
+#' plot_gsea(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
 plot_gsea <- function(
   scoreTables,
   geneSet=NULL,
@@ -138,30 +155,6 @@ plot_gsea <- function(
   verbose=TRUE,
   ...
   ){
-  
-  #' Create a one-page figure showing top enriched gene sets (pathways) based on GSEA.
-  #' 
-  #' @description Downoads gene set information from MSigDB for a given species, runs
-  #' Gene Set Enrichment Analysis and compiles a figure with 2 subplots: dotplot of gene
-  #' sets and ridgeplot showing distribution of gene expression change in top gene sets.
-  #' 
-  #' @param scoreTables list. A named list of dataframes with gene ID in the first column,
-  #' symbol in the second
-  #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param score_column string. Name of column with scores. Third column if not specified.
-  #' @param universe character vector. All genes in the organism.
-  #' @param verbose logical. Whether progress messages should be printed.
-  #' @param ... ellipse. Arguments to be passed on to the enricher function.
-  #' @usage plot_gsea(scoreTables, geneSet=NULL, verbose=TRUE, ...)
-  #' @return ggplot
-  #' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
-  #' significance, while size shows...
-  
-  #' @examples
-  #' plot_gsea(scoreTables)
-  #' plot_gsea(scoreTables, geneSet)
-  #' plot_gsea(scoreTables, geneSet)
-  #' plot_gsea(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
 
   if(is.null(geneSet)){
     if(verbose){
@@ -235,26 +228,25 @@ plot_gsea <- function(
 }
 
 
-gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
-  
-  #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
-  #' ClusterProfiler.
-  #' 
-  #' @description Takes a table with scores associated to gene names or symbols. 
-  #' This score is typically logFC, but can also be p-value. GSEA is carried out after
-  #' sorting based on score. 
-  #' 
-  #' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
-  #' @param conditionName string. Name of the condition to be shown on plot.
-  #' @param geneSet dataframe. Gene set membership of genes.
-  #' @param score_column string. Name of column with scores. Third column if not specified.
-  #' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
-  #' @usage single_gsea_enrichment(hitGenes, geneSet, ...)
-  #' @return encrichement result
+#' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
+#' ClusterProfiler.
+#' 
+#' @description Takes a table with scores associated to gene names or symbols. 
+#' This score is typically logFC, but can also be p-value. GSEA is carried out after
+#' sorting based on score. 
+#' 
+#' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
+#' @param conditionName string. Name of the condition to be shown on plot.
+#' @param geneSet dataframe. Gene set membership of genes.
+#' @param score_column string. Name of column with scores. Third column if not specified.
+#' @param ... ellipse. Arguments to be passed on to ClusterProfiler::GSEA.
+#' @usage single_gsea_enrichment(hitGenes, geneSet, ...)
+#' @return encrichement result
 
-  #' @examples
-  #' gsea_enrichment(scoreTable, conditionName, geneSet)
-  #' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
+#' @examples
+#' gsea_enrichment(scoreTable, conditionName, geneSet)
+#' gsea_enrichment(hitGenes, conditionName, geneSet, score_column="logFC", pAdjustMethod="BH")
+gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NULL, ...){
 
   cn <- colnames(scoreTable)
   if (is.null(score_column)){
@@ -280,26 +272,25 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 }
 
 
-gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditionOrder=NULL){
+#' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
+#' 
+#' @description A ClusterProfiler enrichment result for multiple conditions and after
+#' GSEA is visualized side-by-side, as dotplot. It is essential that dataframes in the
+#' results are sorted by a score (absNES) preferabily.
+#' 
+#' @param enrichmentList named list. Enrichment results.
+#' @param plot_title string. Title of the figure.
+#' @param n_to_show. Maximum number of enriched gene sets to show.
+#' @param conditionOrder character. Oreder of experimental conditions.
+#' @usage gsea_enrichdot(enrichmentList, plot_title="Top gene sets", n_to_show=20, conditionOrder=NULL)
+#' @return ggplot
+#' @details Color corresponds to Normalized Enrichment score, while size shows
+#' significance.
 
-  #' Create a dotplot showing top enriched gene sets (pathways) for multiple hitlists.
-  #' 
-  #' @description A ClusterProfiler enrichment result for multiple conditions and after
-  #' GSEA is visualized side-by-side, as dotplot. It is essential that dataframes in the
-  #' results are sorted by a score (absNES) preferabily.
-  #' 
-  #' @param enrichmentList named list. Enrichment results.
-  #' @param plot_title string. Title of the figure.
-  #' @param n_to_show. Maximum number of enriched gene sets to show.
-  #' @param conditionOrder character. Oreder of experimental conditions.
-  #' @usage gsea_enrichdot(enrichmentList, plot_title="Top gene sets", n_to_show=20, conditionOrder=NULL)
-  #' @return ggplot
-  #' @details Color corresponds to Normalized Enrichment score, while size shows
-  #' significance.
-  
-  #' @examples
-  #' gsea_enrichdot(enrichmentList)
-  #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
+#' @examples
+#' gsea_enrichdot(enrichmentList)
+#' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
+gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditionOrder=NULL){
 
   if(is.null(conditionOrder)){
     conditionOrder <- names(enrichments)
@@ -344,23 +335,21 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
 }
 
 
+#' Take top gene sets in a GSEA result and assign gene expression change (or other score)
+#' to each gebe set.
+#' 
+#' @description Collects scores for all genes in top gene sets for all conditions and
+#' merges this information into a dataframe that can later be used for plotting.
+#' 
+#' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
+#' @param conditionName string. Name of the condition to be shown on plot.
+#' @param topsets character vector. Vector specifying the most enriched gene sets.
+#' @usage gsea_ridge_rich(enrichment, conditionName, topsets)
+#' @return ggplot
+
+#' @examples
+#' gsea_ridge_rich(enrichment, conditionName, topsets)
 gsea_ridge_rich <- function(enrichment, conditionName, topsets){
-  
-  #' Take top gene sets in a GSEA result and assign gene expression change (or other score)
-  #' to each gebe set.
-  #' 
-  #' @description Collects scores for all genes in top gene sets for all conditions and
-  #' merges this information into a dataframe that can later be used for plotting.
-  #' 
-  #' @param enrichment ClusterProfiler result object. Result of an enrichment analysis.
-  #' @param conditionName string. Name of the condition to be shown on plot.
-  #' @param topsets character vector. Vector specifying the most enriched gene sets.
-  #' @usage gsea_ridge_rich(enrichment, conditionName, topsets)
-  #' @return ggplot
- 
-  #' @examples
-  #' gsea_ridge_rich(enrichment, conditionName, topsets)
-  
   enrichment@geneSets %>%
     .[topsets] %>%
     enframe() %>%
@@ -371,23 +360,23 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
     )
 }
 
+
+#' Create boxplots showing distribution of gene expression changes in top gene sets
+#' in all separate conditions.
+#' 
+#' @description Gene expression changes of all genes in a given gene set are shown on 
+#' a density plot. Color of histograms corresponds to condition.
+#' 
+#' @param enrichment dataframe. Result of clusterProfiler::GSEA for multiple conditions.
+#' @param n_to_show integer. Result of clusterProfiler::GSEA for multiple conditions.
+#' @param conditionOrder character. Oreder of experimental conditions.
+#' @param conditionColors character. Colors associated to each condition.
+#' @usage gsea_boxes(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL)
+#' @return ggplot
+
+#' @examples
+#' gsea_boxes(enrichment)
 gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL){
-  
-  #' Create boxplots showing distribution of gene expression changes in top gene sets
-  #' in all separate conditions.
-  #' 
-  #' @description Gene expression changes of all genes in a given gene set are shown on 
-  #' a density plot. Color of histograms corresponds to condition.
-  #' 
-  #' @param enrichment dataframe. Result of clusterProfiler::GSEA for multiple conditions.
-  #' @param n_to_show integer. Result of clusterProfiler::GSEA for multiple conditions.
-  #' @param conditionOrder character. Oreder of experimental conditions.
-  #' @param conditionColors character. Colors associated to each condition.
-  #' @usage gsea_boxes(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL)
-  #' @return ggplot
-  
-  #' @examples
-  #' gsea_boxes(enrichment)
 
   if(is.null(conditionOrder)){
     conditionOrder <- names(enrichments)
@@ -441,21 +430,20 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
 
 }
 
-gsea_ridges <- function(enrichments, n_to_show=30){
-  
-  #' Create ridgeplots showing distribution of gene expression changes in top gene sets
-  #' in all separate conditions.
-  #' 
-  #' @description Gene expression changes of all genes in a given gene set are shon on 
-  #' a density plot. Color of histograms corresponds to condition.
-  #' 
-  #' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
-  #' @usage gsea_ridges(enrichments, n_to_show=30)
-  #' @return ggplot
-  
-  #' @examples
-  #' gsea_ridges(enrichment)
 
+#' Create ridgeplots showing distribution of gene expression changes in top gene sets
+#' in all separate conditions.
+#' 
+#' @description Gene expression changes of all genes in a given gene set are shon on 
+#' a density plot. Color of histograms corresponds to condition.
+#' 
+#' @param enrichment. Result of clusterProfiler::GSEA for multiple conditions.
+#' @usage gsea_ridges(enrichments, n_to_show=30)
+#' @return ggplot
+
+#' @examples
+#' gsea_ridges(enrichment)
+gsea_ridges <- function(enrichments, n_to_show=30){
   topsets <- list()
   for (enrn in names(enrichments)){
     enrichment <- enrichments[[enrn]]
@@ -499,23 +487,23 @@ gsea_ridges <- function(enrichments, n_to_show=30){
 
 }
 
-download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
-  
-  #' Download gene ontologies: a knowledge set is downloaded from MSigDB.
-  #' 
-  #' @description Downloeds gene ontologies (primarily the "Biological Process" section)
-  #' as a dataframe, prettifies ontology names and removes extra columns not needed for
-  #' the enrichment analysis.
-  #' 
-  #' @param msig_species string. Species for mapping gene symbols. 
-  #' @param msig_category string. The section of MSigDB. 
-  #' @param msig_subcategory string. A subsection of MSigDB. 
-  #' @usage download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
-  #' @return data frame with gene ontology membership of gene symbols
 
-  #' @examples
-  #' download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
-  #' download_ontologies()
+#' Download gene ontologies: a knowledge set is downloaded from MSigDB.
+#' 
+#' @description Downloeds gene ontologies (primarily the "Biological Process" section)
+#' as a dataframe, prettifies ontology names and removes extra columns not needed for
+#' the enrichment analysis.
+#' 
+#' @param msig_species string. Species for mapping gene symbols. 
+#' @param msig_category string. The section of MSigDB. 
+#' @param msig_subcategory string. A subsection of MSigDB. 
+#' @usage download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
+#' @return data frame with gene ontology membership of gene symbols
+
+#' @examples
+#' download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
+#' download_ontologies()
+download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
 
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)

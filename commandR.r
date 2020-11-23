@@ -5,6 +5,12 @@
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(docstring))
 
+default_colors <- c(
+  '#1a476f', '#90353b', '#55752f', '#e37e00', '#6e8e84', '#c10534',
+  '#938dd2', '#cac27e', '#a0522d', '#7b92a8', '#2d6d66', '#9c8847',
+  '#bfa19c', '#ffd200', '#d9e6eb'
+)
+
 ### Patching Pheatmap with diagonal column labels;
 ### Idea from https://www.thetopsites.net/article/54919955.shtml
 draw_colnames_30 <- function (coln, gaps, ...) {
@@ -15,17 +21,16 @@ draw_colnames_30 <- function (coln, gaps, ...) {
 
 assignInNamespace(x="draw_colnames", value="draw_colnames_30", ns=asNamespace("pheatmap"))
 
-fig2pdf <- function(figure, filename_base, height, width){
 
-  #' Save a plot, preferably one page, into pdf.
-  #' 
-  #' @param figure plot (ggplot or cowplot). The plot to be saved.
-  #' @param filename_base string. File name, with path and prefix, but no extension. 
-  #' @param height integer. Height of the output canvas.
-  #' @param width integer. Width of the output canvas. 
-  #' 
-  #' @return NULL.
-  
+#' Save a plot, preferably one page, into pdf.
+#' 
+#' @param figure plot (ggplot or cowplot). The plot to be saved.
+#' @param filename_base string. File name, with path and prefix, but no extension. 
+#' @param height integer. Height of the output canvas.
+#' @param width integer. Width of the output canvas. 
+#' 
+#' @return NULL.
+fig2pdf <- function(figure, filename_base, height, width){
   pdf(paste0(filename_base, ".pdf"), height=height, width=width)
   print(figure)
   dev.off()
@@ -33,19 +38,17 @@ fig2pdf <- function(figure, filename_base, height, width){
 }
 
 
+#' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
+#' friendly IDs, the second column can be a more readable mapping, provided by relabels.
+#' 
+#' @param tab dta.fram. The table to be saved.
+#' @param filename_base string. File name, with path and prefix, but no extension. 
+#' @param primary_id string. Column header for row names.
+#' @param secondary_id string. Column header for second column with human-friendly labels.
+#' @param relabels named vector. Mapping from IDs to human-friendly labels. 
+#' 
+#' @return NULL.
 genetab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="Symbol", relabels=NULL){
-
-  #' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
-  #' friendly IDs, the second column can be a more readable mapping, provided by relabels.
-  #' 
-  #' @param tab dta.fram. The table to be saved.
-  #' @param filename_base string. File name, with path and prefix, but no extension. 
-  #' @param primary_id string. Column header for row names.
-  #' @param secondary_id string. Column header for second column with human-friendly labels.
-  #' @param relabels named vector. Mapping from IDs to human-friendly labels. 
-  #' 
-  #' @return NULL.
-  
   original_cols <- colnames(tab)
   if(!is.null(relabels)){
     tab[[secondary_id]] <- relabels[rownames(tab)]
