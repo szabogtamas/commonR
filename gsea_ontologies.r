@@ -213,7 +213,7 @@ plot_gsea <- function(
   p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show, conditionOrder)
 
   if(verbose){
-    cat("Plotting ridgeplot of top gene sets\n")
+    cat("Plotting distibution of changes in top gene sets\n")
   }
   if (geneset_dist_plot == "ridge") {
     p2 <- gsea_ridges(enrichments, n_to_show)
@@ -324,6 +324,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
       breaks=c(-2, 1, 0, 1, 2),
       limits=c(-2, 2), oob = scales::squish
     ) +
+    scale_y_discrete(limits=topsets) +
     theme(
       axis.text.x=element_text(angle=30, hjust=1),
       axis.text.y=element_text(size=8),
@@ -410,14 +411,14 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
     bind_rows() %>%
     mutate(
       condition = factor(condition, levels=conditionOrder),
-      name = factor(name, levels=topsets),
-      name = substr(name, 1, 35)
+      name = factor(name, levels=topsets)
     ) 
   
   rich_plot_box %>%
     ggplot(aes(x=name, y=gex, fill=condition)) + 
     geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
-    scale_fill_manual(values=conditionColors) +
+    scale_fill_manual(values=conditionColors, drop=FALSE) +
+    scale_x_discrete(limits=topsets) +
     theme(
       axis.ticks = element_blank(),
       axis.text.x=element_text(size=7, angle=30, hjust=1),
