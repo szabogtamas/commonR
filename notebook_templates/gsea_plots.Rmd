@@ -1,0 +1,39 @@
+---
+title: "GSEA for HCT116 Bcl2 family KO"
+output: html_notebook
+---
+
+```{r}
+project_dir <- getwd()
+source("/home/szabo/dev_packages/commonR/gsea_ontologies.r", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+tbale_paths <- "BaxBakKO:/home/szabo/myScratch/DiffExpr/notebook_Villunger/tables/edge_Bax___Bak DKO.tsv,OctaKO:/home/szabo/myScratch/DiffExpr/notebook_Villunger/tables/edge_Octa KO.tsv,Bcl2KO:/home/szabo/myScratch/DiffExpr/notebook_Villunger/tables/edge_BCL2 KO.tsv"
+
+opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, tbale_paths)
+
+opt$msig_species <- "Homo sapiens"
+opt$msig_category <- "C2"
+opt$msig_subcategory <- "CP:KEGG"
+```
+
+```{r}
+opt$geneSet <- download_ontologies(opt$msig_species, opt$msig_category, opt$msig_subcategory)
+head(opt$geneSet)
+```
+
+```{r}
+gsea_plots <- do.call(plot_gsea, opt[!(names(opt) %in% c(
+  "msig_category", "msig_subcategory", "msig_species", "outPrefix", "commandRpath", "outFile"
+))])
+print(names(gsea_plots$enrichments))
+```
+
+```{r}
+gsea_plots$genedot
+```
+```{r}
+gsea_plots$setchange
+```
