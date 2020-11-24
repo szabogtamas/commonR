@@ -1,0 +1,48 @@
+---
+title: "{{nb_title}}"
+output: html_notebook
+---
+
+```{r}
+project_dir <- {{nb_project_dir}}
+source("{{go_script_path}}", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+hitlists <- "{{go_hitlists}}"
+
+opt <- parser4nested(opt, "scoreTables", scriptMandatoryArgs, table_paths)
+
+opt$conditionOrder <- unlist(strsplit("{{go_condition_order}}", ",", fixed=TRUE))
+
+opt$msig_species <- "{{go_species}}"
+opt$msig_category <- "{{go_maincat}}"
+opt$msig_subcategory <- "{{go_subcat}}"
+```
+
+```{r}
+opt$geneSet <- download_ontologies()
+head(opt$geneSet)
+```
+
+```{r}
+if (length(opt$hitGenes) > 1){
+    print("Multiple hitlists supplied. Plotting comparison on common plot\n")
+    go_plots <- do.call(plot_enrichment_for_multiple_hitlist, opt[!(names(opt) %in% c(
+      "plot_title", "msig_category", "msig_subcategory", "msig_species", "outPrefix", "commandRpath", "outFile"
+    ))])
+  } else {
+    print("Single hitlists supplied\n")
+    go_plots <- do.call(plot_enrichment_for_single_hitlist, opt[!(names(opt) %in% c(
+      "plot_title", "msig_category", "msig_subcategory", "msig_species", "outPrefix", "commandRpath", "outFile"
+    ))])
+  }
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+go_plots$genedot
+```
+```{r fig.width=7.2, fig.height=2.4}
+go_plots$genepie
+```
