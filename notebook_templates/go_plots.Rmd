@@ -12,7 +12,7 @@ setwd(project_dir)
 ```{r}
 hitlists <- "{{go_hitlists}}"
 
-opt <- parser4nested(opt, "scoreTables", scriptMandatoryArgs, table_paths)
+opt <- parser4nested(opt, "hitGenes", scriptMandatoryArgs, hitlists)
 
 opt$conditionOrder <- unlist(strsplit("{{go_condition_order}}", ",", fixed=TRUE))
 
