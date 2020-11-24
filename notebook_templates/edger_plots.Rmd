@@ -1,0 +1,42 @@
+---
+title: "{{nb_title}}"
+output: html_notebook
+---
+
+```{r}
+project_dir <- {{nb_project_dir}}
+source("{{edger_script_path}}", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+countMatrix <- "{{edger_counts}}"
+
+opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, countMatrix)
+
+opt$conditionOrder <- unlist(strsplit("{{edger_condition_order}}", ",", fixed=TRUE))
+opt$conditionColors <- unlist(strsplit("{{edger_condition_colors}}", ",", fixed=TRUE))
+```
+
+```{r}
+test_results <- do.call(testDEwithEdgeR, opt)
+```
+
+```{r}
+map(test_results$de_tables, head)
+```
+```{r}
+map(test_results$rawResults, head)
+```
+
+```{r}
+head(test_results$geneDict)
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+test_results$plots[[1]]
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+test_results$plots$an_overwiew
+```
