@@ -421,7 +421,7 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
     scale_x_discrete(limits=rev(topsets)) +
     theme(
       axis.ticks = element_blank(),
-      axis.text.x=element_text(size=7, angle=30, hjust=1),
+      axis.text.x = element_text(size=7, angle=30, hjust=1),
       legend.position = "left"
     ) + 
     ylim(-1, 1) +

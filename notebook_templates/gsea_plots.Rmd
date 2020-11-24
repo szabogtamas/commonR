@@ -1,24 +1,24 @@
 ---
-title: "GSEA for HCT116 Bcl2 family KO"
+title: "{{nb_title}}"
 output: html_notebook
 ---
 
 ```{r}
-project_dir <- getwd()
-source("/home/szabo/dev_packages/commonR/gsea_ontologies.r", chdir=TRUE)
+project_dir <- {{nb_project_dir}}
+source("{{gsea_script_path}}", chdir=TRUE)
 setwd(project_dir)
 ```
 
 ```{r}
-tbale_paths <- "BaxBakKO:/home/szabo/myScratch/DiffExpr/notebook_Villunger/tables/edge_Bax___Bak DKO.tsv,OctaKO:/home/szabo/myScratch/DiffExpr/notebook_Villunger/tables/edge_Octa KO.tsv,Bcl2KO:/home/szabo/myScratch/DiffExpr/notebook_Villunger/tables/edge_BCL2 KO.tsv"
+table_paths <- "{{gsea_input_tables}}"
 
-opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, tbale_paths)
+opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, table_paths)
 
-opt$conditionOrder <- unlist(strsplit("WT,OctaKO,BaxBakKO,Bcl2KO", ",", fixed=TRUE))
+opt$conditionOrder <- unlist(strsplit("{{gsea_condition_order}}", ",", fixed=TRUE))
 
-opt$msig_species <- "Homo sapiens"
-opt$msig_category <- "C2"
-opt$msig_subcategory <- "CP:KEGG"
+opt$msig_species <- "{{gsea_species}}"
+opt$msig_category <- "{{gsea_maincat}}"
+opt$msig_subcategory <- "{{gsea_subcat}}"
 ```
 
 ```{r}
