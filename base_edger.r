@@ -166,7 +166,7 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     geneDict = NULL
   }
 
-  invisible(list(figures=plots, tables=de_tables, geneDict=geneDict))
+  invisible(list(figures=plots, tables=de_tables, rawResults=de_test, geneDict=geneDict))
 
 }
 
