@@ -34,9 +34,9 @@ print("\n")
 print(names(gsea_plots$enrichments))
 ```
 
-```{r}
+```{r fig.width=7.2, fig.height=2.4}
 gsea_plots$genedot
 ```
-```{r}
+```{r fig.width=7.2, fig.height=2.4}
 gsea_plots$setchange
 ```
