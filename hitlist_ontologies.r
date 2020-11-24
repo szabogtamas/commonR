@@ -108,6 +108,7 @@ main <- function(opt){
   if(opt$verbose){
     cat("Saving figure\n")
   }
+  p <- plot_grid(p$genedot, p$genepie, nrow=2, labels="AUTO")
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
@@ -165,8 +166,7 @@ plot_enrichment_for_single_hitlist <- function(hitGenes, geneSet=NULL, universe=
   if(verbose){
     cat("Combining subplots and saving figure\n")
   }
-  p <- plot_grid(p1, p2, nrow=2, labels="AUTO")
-  return(p)
+  invisible(list(genedot=p1, genepie=p2, enrichment=enrichment))
 }
 
 
@@ -227,21 +227,18 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
     cat("Plotting dotplot of top genes\n")
   }
 
-  p <- tryCatch({
-
-    p2 <- multi_hitlist_genedot(enrichment)
-    if(verbose){
-      cat("Combining subplots and saving figure\n")
-    }
-    plot_grid(p1, p2, nrow=2, labels="AUTO")
-
+  p2 <- tryCatch({
+    multi_hitlist_genedot(enrichment)
     }, error = function(e) {
       if(verbose){
         cat(e)
       }
-      plot_grid(p1, nrow=2, labels="AUTO")
+      ggplot() +
+        theme_void()
     }
   )
+
+  invisible(list(genedot=p1, genepie=p2, enrichment=enrichment))
   
   return(p)
 }
