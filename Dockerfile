@@ -14,6 +14,9 @@ RUN install2.r --error \
 
 
 RUN R -e "BiocManager::install('HPAanalyze')"
+RUN R -e "BiocManager::install('karyoploteR')"
+RUN R -e "BiocManager::install('ggbio')"
+RUN R -e "BiocManager::install('maftools')"
 RUN R -e "BiocManager::install('pathview')"
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('edgeR')"
