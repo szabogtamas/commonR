@@ -307,11 +307,13 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
   rich_plot_dot <- enrichmentList %>%
     map(function(x) x@result) %>%
     bind_rows() %>%
-    arrange(desc(absNES)) %>%
     filter(Description %in% topsets) %>%
+    arrange(NES) %>%
     mutate(
       group = factor(group, levels=conditionOrder)
     )
+
+  topsets <- unique(rich_plot_dot$Description)
   
   rich_plot_dot %>%
     ggplot(aes(x=group, y=Description, color=NES, size=absNES)) +
@@ -367,7 +369,7 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
 #' @description Gene expression changes of all genes in a given gene set are shown on 
 #' a density plot. Color of histograms corresponds to condition.
 #' 
-#' @param enrichment dataframe. Result of clusterProfiler::GSEA for multiple conditions.
+#' @param enrichments dataframe. Result of clusterProfiler::GSEA for multiple conditions.
 #' @param n_to_show integer. Result of clusterProfiler::GSEA for multiple conditions.
 #' @param conditionOrder character. Oreder of experimental conditions.
 #' @param conditionColors character. Colors associated to each condition.
@@ -375,7 +377,7 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
 #' @return ggplot
 
 #' @examples
-#' gsea_boxes(enrichment)
+#' gsea_boxes(enrichments)
 gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL){
 
   if(is.null(conditionOrder)){
@@ -396,30 +398,41 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
       arrange(desc(absNES)) %>%
       head(n_to_show)
   }
-  
+
+  signed_NES <- topsets %>%
+    bind_rows() %>%
+    select(ID, Description, NES, group) %>%
+    pivot_wider(values_from=NES, names_from=group, values_fill=0) %>%
+    rowwise(ID) %>% 
+    mutate(signed_meanNES = mean(c_across(where(is.numeric)))) %>%
+    arrange(desc(signed_meanNES)) %>%
+    distinct(ID, .keep_all = TRUE)
+
   topsets <- topsets %>%
     bind_rows() %>%
+    select(ID, Description, absNES, group) %>%
     pivot_wider(values_from=absNES, names_from=group, values_fill=0) %>%
     rowwise(ID) %>% 
     mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
     arrange(desc(meanNES)) %>%
+    distinct() %>%
     head(n_to_show) %>%
-    .$ID %>%
-    unique()
+    left_join(signed_NES, by = "ID") %>%
+    arrange(desc(signed_meanNES)) %>%
+    .$ID
 
   rich_plot_box <- enrichments %>%
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
     bind_rows() %>%
     mutate(
-      condition = factor(condition, levels=conditionOrder),
-      name = factor(name, levels=topsets)
+      condition = factor(condition, levels=conditionOrder)
     ) 
-  
+    
   rich_plot_box %>%
     ggplot(aes(x=name, y=gex, fill=condition)) + 
     geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
     scale_fill_manual(values=conditionColors, drop=FALSE) +
-    scale_x_discrete(limits=rev(topsets)) +
+    scale_x_discrete(limits=topsets) +
     theme(
       axis.ticks = element_blank(),
       axis.text.x = element_text(size=7, angle=30, hjust=1),
