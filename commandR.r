@@ -155,6 +155,7 @@ parser4arglist <- function(parser, arg_defs){
       an <- an +1
     }
   }
+  invisible(parser)
 }
 
 if (!interactive()) {
