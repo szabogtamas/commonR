@@ -58,7 +58,7 @@ for (rn in names(scriptOptionalArgs)){
 
 for (
   pk in c(
-    "tidyr", "dplyr", "pathview"
+    "tidyr", "dplyr", "pathview", "ggplot2", "cowplot"
   )
 ){
   if(!(pk %in% (.packages()))){
@@ -76,8 +76,9 @@ for (
 main <- function(opt){
 
   opt$outFile <- gsub("/", "___", opt$outFile)
+  outFile <- outFile
   plot_title <- opt$plot_title
-  opt$plot_title <- NULL #TODO Use this somehow; ggdraw?
+  opt$plot_title <- NULL
   opt$commandRpath <- NULL
   opt$help <- NULL
 
@@ -86,6 +87,14 @@ main <- function(opt){
   }
   do.call(draw_kegg_path, opt)
 
+  if(opt$verbose){
+    cat(paste0("Adding title to plot\n"))
+  }
+  p <- ggplot() +
+    theme_void() +
+    draw_image(paste0(keggPath, ".", outFile, ".png"))
+        
+  fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
 
