@@ -240,7 +240,6 @@ plot_enrichment_for_multiple_hitlist <- function(hitGenes, geneSet=NULL, emptyRe
 
   invisible(list(genedot=p1, genepie=p2, enrichment=enrichment))
   
-  return(p)
 }
 
 

@@ -23,6 +23,7 @@ scriptOptionalArgs <- list(
   ),
   conditionOrder = list(
     default=NULL,
+    type="vector",
     help="Order of experimental conditions on plots."
   ),
   conditionColors = list(
