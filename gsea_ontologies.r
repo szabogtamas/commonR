@@ -422,7 +422,7 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
       distinct() %>%
       head(n_to_show) %>%
       left_join(signed_NES, by = "ID") %>%
-      arrange(desc(signed_meanNES)) %>%
+      arrange(signed_meanNES) %>%
       .$ID
   }
 
@@ -435,9 +435,9 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
     
   rich_plot_box %>%
     ggplot(aes(x=name, y=gex, fill=condition)) + 
-    geom_boxplot(position=position_dodge(1), outlier.shape = NA) +
+    geom_boxplot(position=position_dodge2(width=0.8, preserve="single"), outlier.shape = NA) +
     scale_fill_manual(values=conditionColors, drop=FALSE) +
-    scale_x_discrete(limits=topsets) +
+    scale_x_discrete(limits=rev(topsets)) +
     theme(
       axis.ticks = element_blank(),
       axis.text.x = element_text(size=7, angle=30, hjust=1),
