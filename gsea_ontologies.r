@@ -118,7 +118,7 @@ main <- function(opt){
     cat(paste0("Downloaded ", opt$msig_category, "/", opt$msig_subcategory, " for ", opt$msig_species, "\n"))
   }
   p <- do.call(plot_gsea, opt[!(names(opt) %in% c("msig_category", "msig_subcategory", "msig_species"))])
-
+  
   if(opt$verbose){
     cat("Combining subplots and saving figure\n")
   }
@@ -212,17 +212,17 @@ plot_gsea <- function(
     cat("Plotting dotplot of top gene sets\n")
   }
   p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show, conditionOrder)
-
+  
   if(verbose){
     cat("Plotting distibution of changes in top gene sets\n")
   }
   if (geneset_dist_plot == "ridge") {
-    p2 <- gsea_ridges(enrichments, n_to_show)
+    p2 <- gsea_ridges(enrichments, n_to_show, topsets=p1$topsets)
   } else {
-    p2 <- gsea_boxes(enrichments, n_to_show, conditionOrder, conditionColors)
+    p2 <- gsea_boxes(enrichments, n_to_show, conditionOrder, conditionColors, topsets=p1$topsets)
   }
   
-  invisible(list(genedot=p1, setchange=p2, enrichments=enrichments))
+  invisible(list(genedot=p1$plot, setchange=p2, enrichments=enrichments, topsets=p1$topsets))
 
 }
 
@@ -315,7 +315,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
 
   topsets <- unique(rich_plot_dot$Description)
   
-  rich_plot_dot %>%
+  p <- rich_plot_dot %>%
     ggplot(aes(x=group, y=Description, color=NES, size=absNES)) +
     geom_point() +
     labs(
@@ -334,6 +334,8 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
       plot.title = element_text(hjust=-2)
     ) +
     labs(x="", y="")
+
+  return(list(plot=p, topsets=topsets))
 }
 
 
@@ -373,12 +375,13 @@ gsea_ridge_rich <- function(enrichment, conditionName, topsets){
 #' @param n_to_show integer. Result of clusterProfiler::GSEA for multiple conditions.
 #' @param conditionOrder character. Oreder of experimental conditions.
 #' @param conditionColors character. Colors associated to each condition.
-#' @usage gsea_boxes(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL)
+#' @param topsets vector. Top gene sets to be used.
+#' @usage gsea_boxes(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL, topsets=NULL)
 #' @return ggplot
 
 #' @examples
 #' gsea_boxes(enrichments)
-gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL){
+gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, conditionColors=NULL, topsets=NULL){
 
   if(is.null(conditionOrder)){
     conditionOrder <- names(enrichments)
@@ -387,39 +390,41 @@ gsea_boxes <- function(enrichments, n_to_show=30, conditionOrder=NULL, condition
     conditionColors <- default_colors
   }
 
-  topsets <- list()
-  for (enrn in names(enrichments)){
-    enrichment <- enrichments[[enrn]]
-    topsets[[enrn]] <- enrichment@result %>%
-      mutate(
-        absNES = abs(NES),
-        group = enrn
-      ) %>%
-      arrange(desc(absNES)) %>%
-      head(n_to_show)
+  if(is.null(topsets)){
+    topsets <- list()
+    for (enrn in names(enrichments)){
+      enrichment <- enrichments[[enrn]]
+      topsets[[enrn]] <- enrichment@result %>%
+        mutate(
+          absNES = abs(NES),
+          group = enrn
+        ) %>%
+        arrange(desc(absNES)) %>%
+        head(n_to_show)
+    }
+
+    signed_NES <- topsets %>%
+      bind_rows() %>%
+      select(ID, Description, NES, group) %>%
+      pivot_wider(values_from=NES, names_from=group, values_fill=0) %>%
+      rowwise(ID) %>% 
+      mutate(signed_meanNES = mean(c_across(where(is.numeric)))) %>%
+      arrange(desc(signed_meanNES)) %>%
+      distinct(ID, .keep_all = TRUE)
+
+    topsets <- topsets %>%
+      bind_rows() %>%
+      select(ID, Description, absNES, group) %>%
+      pivot_wider(values_from=absNES, names_from=group, values_fill=0) %>%
+      rowwise(ID) %>% 
+      mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
+      arrange(desc(meanNES)) %>%
+      distinct() %>%
+      head(n_to_show) %>%
+      left_join(signed_NES, by = "ID") %>%
+      arrange(desc(signed_meanNES)) %>%
+      .$ID
   }
-
-  signed_NES <- topsets %>%
-    bind_rows() %>%
-    select(ID, Description, NES, group) %>%
-    pivot_wider(values_from=NES, names_from=group, values_fill=0) %>%
-    rowwise(ID) %>% 
-    mutate(signed_meanNES = mean(c_across(where(is.numeric)))) %>%
-    arrange(desc(signed_meanNES)) %>%
-    distinct(ID, .keep_all = TRUE)
-
-  topsets <- topsets %>%
-    bind_rows() %>%
-    select(ID, Description, absNES, group) %>%
-    pivot_wider(values_from=absNES, names_from=group, values_fill=0) %>%
-    rowwise(ID) %>% 
-    mutate(meanNES = mean(c_across(where(is.numeric)))) %>%
-    arrange(desc(meanNES)) %>%
-    distinct() %>%
-    head(n_to_show) %>%
-    left_join(signed_NES, by = "ID") %>%
-    arrange(desc(signed_meanNES)) %>%
-    .$ID
 
   rich_plot_box <- enrichments %>%
     map2(names(enrichments), gsea_ridge_rich, topsets) %>%
