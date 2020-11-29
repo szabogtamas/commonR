@@ -23,7 +23,7 @@ scriptOptionalArgs <- list(
   ),
   conditionOrder = list(
     default=NULL,
-    help="Prefix for output files."
+    help="Order of experimental conditions on plots."
   ),
   conditionColors = list(
     default=NULL,
@@ -504,6 +504,9 @@ gsea_ridges <- function(enrichments, n_to_show=30){
 #' download_ontologies()
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
 
+  if(msig_subcategory %in% c(NULL, 'NULL', 'None', '')){
+    msig_subcategory <- NULL
+  }
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
   geneSet$gs_name <- gsub('KEGG_', '', geneSet$gs_name)
