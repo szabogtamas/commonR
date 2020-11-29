@@ -33,7 +33,7 @@ scriptOptionalArgs <- list(
   ),
   score_column = list(
     default="logFC",
-    help="Title to be put over the first subfigure."
+    help="Column that has the values to be shown."
   ),
   plot_title = list(
     default="Top gene sets",
