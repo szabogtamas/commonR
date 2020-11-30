@@ -1,0 +1,31 @@
+---
+title: "{{nb_title}}"
+output: html_notebook
+---
+
+```{r}
+project_dir <- {{nb_project_dir}}
+source("{{pathview_script_path}}", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+gexTable <- "{{gex_tab}}"
+
+opt <- parser4tsv(opt, "gexTable", scriptMandatoryArgs, countMatrix)
+
+opt$keggPath <- unlist(strsplit("{{edger_condition_order}}", ",", fixed=TRUE))
+opt$conditionColors <- unlist(strsplit("{{edger_condition_colors}}", ",", fixed=TRUE))
+```
+
+```{r}
+test_results <- draw_kegg_path(testDEwithEdgeR, opt)
+```
+
+{% for i in range(11) %}
+ {{ i }}
+{% endfor %}
+
+```{r fig.width=7.2, fig.height=2.4}
+test_results$plots[[1]]
+```
