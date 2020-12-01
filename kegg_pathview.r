@@ -48,6 +48,10 @@ scriptOptionalArgs <- list(
   commandRpath = list(
     default="commandR.r",
     help="Path to command line connectivity script (if not in cwd)."
+  ),
+  out_path = list(
+    default=NULL,
+    help="Path to command line connectivity script (if not in cwd)."
   )
 )
 
@@ -81,6 +85,11 @@ main <- function(opt){
   opt$plot_title <- NULL
   opt$commandRpath <- NULL
   opt$help <- NULL
+
+  if(!is.null(opt$out_path)){
+    setwd(opt$out_path)
+    opt$out_path <- NULL
+  }
 
   if(opt$verbose){
     cat(paste0("Drawing pathway map for ", keggPath, " (", outFile, ")\n"))
