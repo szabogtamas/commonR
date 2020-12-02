@@ -80,7 +80,7 @@ for (
 main <- function(opt){
 
   opt$outFile <- gsub("/", "___", opt$outFile)
-  outFile <- outFile
+  outFile <- opt$outFile
   plot_title <- opt$plot_title
   opt$plot_title <- NULL
   opt$commandRpath <- NULL

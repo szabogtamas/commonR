@@ -12,20 +12,24 @@ setwd(project_dir)
 ```{r}
 gexTable <- "{{gex_tab}}"
 
-opt <- parser4tsv(opt, "gexTable", scriptMandatoryArgs, countMatrix)
+opt <- parser4tsv(opt, "gexTable", scriptMandatoryArgs, gexTable)
 
-opt$keggPath <- unlist(strsplit("{{edger_condition_order}}", ",", fixed=TRUE))
-opt$conditionColors <- unlist(strsplit("{{edger_condition_colors}}", ",", fixed=TRUE))
+opt$outFile <- gsub("/", "___", opt$outFile)
+outFile <- opt$outFile
+
+opt$keggPath <- unlist(strsplit("{{pathview_condition_order}}", ",", fixed=TRUE))
+opt$conditionColors <- unlist(strsplit("{{pathview_condition_colors}}", ",", fixed=TRUE))
 ```
 
-```{r}
-test_results <- draw_kegg_path(testDEwithEdgeR, opt)
-```
+{% for pathway_name in pathway_list %}
 
-{% for i in range(11) %}
- {{ i }}
+  ```{r fig.width=7.2, fig.height=2.4}
+  opt$keggPath <- {{pathway_name}}
+
+  do.call(draw_kegg_path, opt)
+
+  p <- ggplot() +
+    theme_void() +
+    draw_image(paste0(opt$keggPath <- , ".", outFile, ".png"))
+  ```
 {% endfor %}
-
-```{r fig.width=7.2, fig.height=2.4}
-test_results$plots[[1]]
-```
