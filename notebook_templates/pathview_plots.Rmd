@@ -12,13 +12,14 @@ setwd(project_dir)
 ```{r}
 gexTable <- "{{gex_tab}}"
 
-opt <- parser4tsv(opt, "gexTable", scriptMandatoryArgs, gexTable)
+opt <- parser4tsv(opt, "scoreTable", scriptMandatoryArgs, gexTable)
 
 opt$outFile <- gsub("/", "___", opt$outFile)
 outFile <- opt$outFile
 
-opt$keggPath <- unlist(strsplit("{{pathview_condition_order}}", ",", fixed=TRUE))
-opt$conditionColors <- unlist(strsplit("{{pathview_condition_colors}}", ",", fixed=TRUE))
+opt$plot_title  <- "{{pathview_plot_title}}"
+opt$species  <- "{{pathview_species}}"
+opt$out_path  <- "{{pathview_out_path}}"
 ```
 
 {% for pathway_name in pathway_list %}
