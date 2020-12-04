@@ -324,7 +324,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
     ) +
     scale_color_gradientn(
       colors=c('#2b8cbe', '#00bfff', 'grey', '#e38071', '#e31e00'),
-      breaks=c(-2, 1, 0, 1, 2),
+      breaks=c(-2, -1, 0, 1, 2),
       limits=c(-2, 2), oob = scales::squish
     ) +
     scale_y_discrete(limits=topsets) +
@@ -523,8 +523,10 @@ gsea_ridges <- function(enrichments, n_to_show=30){
 #' download_ontologies()
 download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
 
-  if(msig_subcategory %in% c(NULL, 'NULL', 'None', '')){
-    msig_subcategory <- NULL
+  if(!is.null(msig_subcategory)){
+    if( msig_subcategory %in% c('NULL', 'None', '')){
+      msig_subcategory <- NULL
+    }
   }
   geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
   geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
