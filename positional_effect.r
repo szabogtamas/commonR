@@ -245,6 +245,92 @@ p <- scoreTables %>%
   return(p)
 }
 
+
+#' Show fold changes accross chromosomes
+#' 
+#' @description Takes a table with scores associated to gene names or symbols. 
+#' This score is typically logFC, but can also be p-value. GSEA is carried out after
+#' sorting based on score. 
+#' 
+#' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
+#' @param conditionName string. Name of the condition to be shown on plot.
+#' @param geneSet dataframe. Gene set membership of genes.
+#' @param score_column string. Name of column with scores. Third column if not specified.
+#' @usage gsea_local_enrichments(hitGenes, geneSet, score_column=NULL)
+#' @return encrichement result
+
+#' @examples
+#' gsea_local_enrichments(scoreTable, conditionName, geneSet)
+#' gsea_local_enrichments(hitGenes, conditionName, geneSet, score_column="logFC")
+plot_local_changes <- function(scoreTable, conditionName, geneSet, score_column=NULL){
+
+gene_positions <- opt$geneSet %>%
+  mutate(
+    is_mitochondr = grepl("MT", gs_name),
+    chromosome = str_extract(gs_name, "chr(X|Y|\\d*)"),
+    chromosome = ifelse(is_mitochondr, "MT", chromosome),
+    chromosomen = str_replace(chromosome, "chrX", "23"),
+    chromosomen = str_replace(chromosomen, "chrY", "24"),
+    chromosomen = str_replace(chromosomen, "chr", ""),
+    chromosomen = as.numeric(chromosomen),
+    band  = ifelse(is_mitochondr, "10", gs_name),
+    band = str_replace(band, "chr\\d*", ""),
+    band = str_replace_all(band, "q", "-"),
+    band = str_replace_all(band, "[a-zA-Z]", ""),
+    band = as.numeric(band),
+    band = ifelse(band < 0, band + 10, band - 10),
+    location = 100 * chromosomen + band
+  )
+
+
+scoreTables %>%
+  imap(~mutate(.x, condition = .y)) %>%
+  bind_rows() %>%
+  left_join(gene_positions, by = c(Symbol = "gene_symbol")) %>%
+  filter(!is.na(chromosome)) %>%
+  mutate(
+    condition = factor(condition),
+    chromosome = factor(chromosome, levels = c(
+      "chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7",
+      "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", 
+      "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", 
+      "chr22", "chrX", "chrY", "MT" 
+    ))
+  ) %>%
+  group_by(condition, chromosome, band) %>%
+  mutate(
+    median_logFC = median(logFC),
+    q1_logFC = quantile(logFC, 0.05),
+    q3_logFC = quantile(logFC, 0.95)
+  ) %>%
+  ggplot(aes(x=band)) +
+    facet_grid(rows = vars(condition), cols = vars(chromosome), scales = "free", switch="both") +
+    geom_point(aes(y = logFC, color = logFC)) +
+    geom_ribbon(aes(ymin = q1_logFC, ymax = q3_logFC), fill = "#F9E076") +
+    geom_line(aes(y = median_logFC)) +
+    scale_color_gradientn(
+      colors=c('#2b8cbe', '#00bfff', 'grey', 'grey', 'grey', '#e38071', '#e31e00'),
+      breaks=c(-4, -2, -1, 0, 1, 2, 4),
+      limits=c(-4, 4), oob = scales::squish
+    ) +
+    theme_bw() +
+    theme(
+      strip.text.y.left = element_text(size=8, angle = 0),
+      strip.text.x.bottom = element_text(size=6, angle = 60, margin=margin(t=2, r=7, b=7, l=7)),
+      strip.background = element_rect(colour="white", fill="#ffffff"),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    ) + 
+    labs(x="", y="logFC")
+
+  return(p)
+}
+
+
 #' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
 #' ClusterProfiler on chromosomal locations (bands).
 #' 
