@@ -11,7 +11,7 @@ scriptMandatoryArgs <- list(
   ),
   keggPath = list(
     abbr="-p",
-    help="KEGG ID of pathwas (e.g. hsa04110).",
+    help="KEGG ID of pathway (e.g. hsa04110).",
     readoptions=list(stringsAsFactors=FALSE, sep="\t")
   ),
   outFile = list(
@@ -51,7 +51,7 @@ scriptOptionalArgs <- list(
   ),
   out_path = list(
     default=NULL,
-    help="Path to command line connectivity script (if not in cwd)."
+    help="Path to directory whre images will be saved (if not in cwd)."
   )
 )
 
@@ -79,8 +79,9 @@ for (
 #' @return Not intended to return anything, but rather save outputs to files.
 main <- function(opt){
 
-  opt$outFile <- gsub("/", "___", opt$outFile)
-  outFile <- opt$outFile
+  outFile <- paste0(opt$outPrefix, opt$outFile) %>%
+    gsub("/", "___", .)
+  opt$outFile <- outFile
   plot_title <- opt$plot_title
   opt$plot_title <- NULL
   opt$commandRpath <- NULL
