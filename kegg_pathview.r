@@ -102,7 +102,8 @@ main <- function(opt){
   }
   p <- ggplot() +
     theme_void() +
-    draw_image(paste0(opt$keggPath, ".", outFile, ".png"))
+    draw_image(paste0(opt$keggPath, ".", outFile, ".png")) +
+    ggtitle(plot_title)
         
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
