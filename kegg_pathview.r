@@ -79,7 +79,7 @@ for (
 #' @return Not intended to return anything, but rather save outputs to files.
 main <- function(opt){
 
-  outFile <- paste0(opt$outPrefix, opt$outFile) %>%
+  outFile <- paste0(opt$keggPath, opt$outFile) %>%
     gsub("/", "___", .)
   opt$outFile <- outFile
   plot_title <- opt$plot_title
@@ -93,7 +93,7 @@ main <- function(opt){
   }
 
   if(opt$verbose){
-    cat(paste0("Drawing pathway map for ", keggPath, " (", outFile, ")\n"))
+    cat(paste0("Drawing pathway map for ", opt$keggPath, " (", outFile, ")\n"))
   }
   do.call(draw_kegg_path, opt)
 
@@ -102,7 +102,7 @@ main <- function(opt){
   }
   p <- ggplot() +
     theme_void() +
-    draw_image(paste0(keggPath, ".", outFile, ".png"))
+    draw_image(paste0(opt$keggPath, ".", outFile, ".png"))
         
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
