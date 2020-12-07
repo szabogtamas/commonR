@@ -105,7 +105,7 @@ main <- function(opt){
     draw_image(paste0(opt$keggPath, ".", outFile, ".png")) +
     ggtitle(plot_title)
         
-  fig2pdf(p, outFile, height=9.6, width=7.2)
+  fig2pdf(p, outFile, height=4.8, width=7.2)
 }
 
 
