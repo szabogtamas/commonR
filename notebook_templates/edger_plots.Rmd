@@ -5,6 +5,7 @@ output: html_notebook
 
 ```{r}
 project_dir <- {{nb_project_dir}}
+setwd(project_dir)
 source("{{edger_script_path}}", chdir=TRUE)
 setwd(project_dir)
 ```

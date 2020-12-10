@@ -103,10 +103,14 @@ parser4tsv <- function(opt, rn, rg, rv=NULL){
 #' 
 #' @param opt list.  Arguments passed from command line.
 #' @param rn string. Name of the actual argument, specifying table names and paths.
+#' @param rv list.   Argument value. Useful in notebook.
 #' 
 #' @return list.
-parser4nested <- function(opt, rn){
+parser4nested <- function(opt, rn, rv=NULL){
   nl <- list()
+  if (!is.null(rv)){
+    opt[[rn]] <- rv
+  }
   sl <- unlist(strsplit(opt[[rn]], ":", fixed=TRUE))
   for (x in sl){
     x <- unlist(strsplit(x, ",", fixed=TRUE))

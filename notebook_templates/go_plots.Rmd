@@ -5,6 +5,7 @@ output: html_notebook
 
 ```{r}
 project_dir <- {{nb_project_dir}}
+setwd(project_dir)
 source("{{go_script_path}}", chdir=TRUE)
 setwd(project_dir)
 ```
@@ -12,7 +13,7 @@ setwd(project_dir)
 ```{r}
 hitlists <- "{{go_hitlists}}"
 
-opt <- parser4nested(opt, "hitGenes", scriptMandatoryArgs, hitlists)
+opt <- parser4nested(opt, "hitGenes", hitlists)
 
 opt$conditionOrder <- unlist(strsplit("{{go_condition_order}}", ",", fixed=TRUE))
 

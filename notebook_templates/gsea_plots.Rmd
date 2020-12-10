@@ -5,11 +5,12 @@ output: html_notebook
 
 ```{r}
 project_dir <- {{nb_project_dir}}
-source("{{gsea_script_path}}", chdir=TRUE)
 setwd(project_dir)
+source("{{gsea_script_path}}", chdir=TRUE)
 ```
 
 ```{r}
+setwd(project_dir)
 table_paths <- "{{gsea_input_tables}}"
 
 opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, table_paths)
