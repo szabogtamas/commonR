@@ -52,7 +52,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "purrr", "tibble", "edgeR", "pheatmap", "EnhancedVolcano", "ggplot2", "cowplot", "ggplotify")){
+for (pk in c("tidyr", "dplyr", "purrr", "tibble", "openxlsx", "edgeR", "pheatmap", "EnhancedVolcano", "ggplot2", "cowplot", "ggplotify")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
