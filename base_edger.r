@@ -86,7 +86,7 @@ main <- function(opt){
     genetab2tsv,
     relabels=geneDict
   ) 
-  write.xlsx(test_results$tables, paste0(outFile, ".xlsx"))
+  write.xlsx(test_results$tables, paste0(outFile, "summary.xlsx"))
   cat("Saving figures\n")
   fignames <- test_results$figures %>%
     names() %>%
