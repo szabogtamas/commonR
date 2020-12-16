@@ -26,6 +26,16 @@ scriptOptionalArgs <- list(
     type="vector",
     help="Order of conditions in the experimental design formula. Makes sense to put control as first."
   ),
+  clusterSamples = list(
+    default=TRUE,
+    type="logical",
+    help="If samples should be clustered on the heatmap."
+  ),
+  labelVolcano = list(
+    default=TRUE,
+    type="logical",
+    help="If the DE genes should be labelled on the Volcano plot."
+  ),
   conditionColors = list(
     default=NULL,
     type="vector",
@@ -54,7 +64,7 @@ for (pk in c("tidyr", "dplyr", "purrr", "tibble", "edgeR", "pheatmap", "Enhanced
 #' 
 #' @param opt list. a named list of all command line options; will be passed on 
 #' 
-#' @return Not intended to return enything, but rather save outputs to files.
+#' @return Not intended to return anything, but rather save outputs to files.
 main <- function(opt){
   
   outFile <- opt$outFile
@@ -75,7 +85,8 @@ main <- function(opt){
     tablenames,
     genetab2tsv,
     relabels=geneDict
-   ) 
+  ) 
+  write.xlsx(test_results$tables, paste0(outFile, ".xlsx"))
   cat("Saving figures\n")
   fignames <- test_results$figures %>%
     names() %>%
@@ -100,10 +111,12 @@ main <- function(opt){
 #' @param conditionLabels character vector. Experimental condition labels. 
 #' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
 #' @param conditionColors character vector. Color associated to each experimental condition. 
+#' @param clusterSamples If samples should be clustered on the heatmap.
+#' @param labelVolcano If the DE genes should be labelled on the Volcano plot. 
 #' @param ... Arguments inherited from command line but not used by this function. 
 #' 
 #' @return Hitlists.
-testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, ...){
+testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, clusterSamples=TRUE, labelVolcano=TRUE, ...){
 
   ### Start by parsing inputs and setting some defaults
   if(is.null(conditionOrder)){
@@ -153,12 +166,12 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   ### Compile a plot for every case (condition)
   plots <- list(
     heatm = map2(de_tables, names(de_tables), draw_summary_heatmap, conditions, normalized_counts, conditionColors, geneDict),
-    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict),
+    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict, labelVolcano),
     mdp = map(de_test, draw_summary_mdplot)
   ) %>%
   pmap(draw_summary_panel)
 
-  plots[["an_overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts)
+  plots[["an_overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts, clusterSamples)
 
   de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
 
@@ -177,9 +190,10 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 #' @param conditions named vector. All the conditions corresponding to matrix columns.
 #' @param conditionColors named vector. Color codes for conditions. 
 #' @param normalized_counts matrix. Counts normalized as logCPM; computed from y if not supplied.
+#' @param clusterSamples If samples should be clustered on the heatmap.
 #' 
 #' @return ggplotified EdgeR MD plot.
-draw_overview_panel <- function(y, conditions, conditionColors, normalized_counts = NULL){
+draw_overview_panel <- function(y, conditions, conditionColors, normalized_counts=NULL, clusterSamples=TRUE){
 
   y <<- y
   mds_cls <<- conditionColors[conditions]
@@ -237,6 +251,7 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
       annotation_names_row=FALSE,
       show_colnames=FALSE,
       show_rownames=TRUE,
+      cluster_cols = clusterSamples,
       treeheight_col=0,
       color=colorRampPalette(c("white", "grey", "red"))(10),
       breaks=opt_color_breaks
@@ -299,11 +314,12 @@ draw_summary_mdplot <- function(de_test_result){
 #' @param condition string. Experimental condition we want to compare to control. 
 #' @param conditions factor. All the conditions, corresponding.
 #' @param geneDict named vector. Names to be shown if renamed.
-#' @param topNgene integer. How many genes should be shown on the Volcano plot. 
+#' @param labelVolcano If the DE genes should be labelled on the Volcano plot. 
+#' @param topNgene integer. How many genes should be shown on the Volcano plot.
 #' @param ... arguments to be passed on to the EnhancedVolcano call. 
 #' 
 #' @return Hitlists.
-draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, topNgene=25, ...){
+draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labelVolcano=TRUE, topNgene=25, ...){
   
   if(is.null(geneDict)){
     res$gene <- rownames(res)
@@ -315,6 +331,11 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, topN
     unique() %>%
     .[1:topNgene]
   controllabel <- levels(conditions)[[1]]
+  if(!labelVolcano){
+    topResGen <- c()
+    boxedLabels <- FALSE
+    drawConnectors <- FALSE
+  }
   
   volcano.colors <- ifelse(
     res$FDR < 0.05,
@@ -337,7 +358,7 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, topN
     caption='', subtitle='',
     legendPosition='none',
     selectLab=topResGen,
-    drawConnectors=TRUE, colConnectors="grey30", boxedLabels=TRUE,
+    drawConnectors=drawConnectors, colConnectors="grey30", boxedLabels=boxedLabels,
     gridlines.major=FALSE, gridlines.minor=FALSE,
     colCustom = volcano.colors,
     borderWidth = 0.3,

@@ -192,17 +192,21 @@ if (!interactive()) {
   for (rn in names(all_arguments)){
     rg <- all_arguments[[rn]]
     if ("type" %in% names(rg) & !is.null(opt[[rn]])) {
-      if (rg[["type"]] %in% c("vector", "nested", "table", "tables") ) {
-        if (rg[["type"]] == "vector") {
-          opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
+      if (rg[["type"]] %in% c("vector", "nested", "table", "tables", "logical") ) {
+        if (rg[["type"]] == "logical") {
+          opt[[rn]] <- ifelse(opt[[rn]] %in% c(TRUE, "TRUE", "True", "true", "T", 1, "1"), TRUE, FALSE)
         } else {
-          if (rg[["type"]] == "nested") {
-            opt <- parser4nested(opt, rn)
+          if (rg[["type"]] == "vector") {
+            opt[[rn]] <- unlist(strsplit(opt[[rn]], ",", fixed=TRUE))
           } else {
-            if (rg[["type"]] == "tables") {
-              opt <- parser4tsv(opt, rn, rg)
+            if (rg[["type"]] == "nested") {
+              opt <- parser4nested(opt, rn)
             } else {
-              opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
+              if (rg[["type"]] == "tables") {
+                opt <- parser4tsv(opt, rn, rg)
+              } else {
+                opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
+              }
             }
           }
         }
