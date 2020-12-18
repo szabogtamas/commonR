@@ -58,6 +58,7 @@ for (pk in c("tidyr", "dplyr", "purrr", "tibble", "openxlsx", "edgeR", "pheatmap
   }
 }
 
+#TODO also add PROGENY from https://github.com/saezlab/progeny/blob/master/vignettes/progenyBulk.Rmd
 
 #' The main function of the script, executed only if called from command line.
 #' Calls subfunctions according to supplied command line arguments.
