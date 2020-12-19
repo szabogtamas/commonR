@@ -58,6 +58,8 @@ for (pk in c("tidyr", "dplyr", "purrr", "tibble", "openxlsx", "edgeR", "pheatmap
   }
 }
 
+#TODO This script will use Progeny to show which pathways are perturbed. Chack out https://github.com/saezlab/progeny/blob/master/vignettes/progenyBulk.Rmd
+
 #' The main function of the script, executed only if called from command line.
 #' Calls subfunctions according to supplied command line arguments.
 #' 
