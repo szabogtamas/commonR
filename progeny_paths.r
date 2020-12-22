@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-scriptDescription <- "A script that runs a default DE anlysis with edgeR for Bulk RNAseq."
+scriptDescription <- "A script that explores perturbation of canonical pathways via PROGENy."
 
 scriptMandatoryArgs <- list(
   readCounts = list(
@@ -57,7 +57,7 @@ for (pk in c("tidyr", "dplyr", "purrr", "tibble", "openxlsx", "edgeR", "pheatmap
     library(pk, character.only=TRUE)
   }
 }
-
+myScratch/DiffExpr/rnaSeqEmuMyc/tables/counts.tsv
 #TODO This script will use Progeny to show which pathways are perturbed. Chack out https://github.com/saezlab/progeny/blob/master/vignettes/progenyBulk.Rmd
 
 #' The main function of the script, executed only if called from command line.
