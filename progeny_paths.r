@@ -74,20 +74,11 @@ main <- function(opt){
   opt$verbose <- NULL
 
   cat("Testing DE with EdgeR\n")
-  test_results <- do.call(testDEwithEdgeR, opt)
+  progeny_results <- do.call(progenyPathwayScores, opt)
   cat("Saving tables\n")
-  geneDict <- test_results$geneDict
-  tablenames <- test_results$tables %>%
-    names() %>%
-    gsub("/", "___", .) %>%
-    paste0(outFile, .)
-  map2(
-    test_results$tables,
-    tablenames,
-    genetab2tsv,
-    relabels=geneDict
-  ) 
-  write.xlsx(test_results$tables, paste0(outFile, "summary.xlsx"))
+  geneDict <- progeny_results$geneDict
+  genetab2tsv(progeny_results$table, outFile)
+  
   cat("Saving figures\n")
   fignames <- test_results$figures %>%
     names() %>%
@@ -113,11 +104,10 @@ main <- function(opt){
 #' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
 #' @param conditionColors character vector. Color associated to each experimental condition. 
 #' @param clusterSamples If samples should be clustered on the heatmap.
-#' @param labelVolcano If the DE genes should be labelled on the Volcano plot. 
 #' @param ... Arguments inherited from command line but not used by this function. 
 #' 
 #' @return Hitlists.
-testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, clusterSamples=TRUE, labelVolcano=TRUE, ...){
+progenyPathwayScores <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, clusterSamples=TRUE, ...){
 
   ### Start by parsing inputs and setting some defaults
   if(is.null(conditionOrder)){
@@ -140,6 +130,12 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   
   geneDict <- setNames(readCounts[[2]], readCounts[[1]])
 
+  metaData <- readCounts %>%
+  colnames() %>%
+  .[c(-1, -2)] %>%
+  data.frame(group = conditionLabels) %>%
+  column_to_rownames(var = ".")
+
   ### PROGENy accepts a variance stabilized DEseq2 object as input
   gexInfo <- readCounts %>% 
     mutate(Gene = .[,2]) %>%
@@ -151,67 +147,56 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     DESeqDataSetFromMatrix(colData = metaData, design = ~group) %>%
     estimateSizeFactors() %>%
     estimateDispersions() %>%
-    getVarianceStabilizedData()
-
-  ### Get pathway perturbation scores with PROGENy
-  gexInfo %>%
+    getVarianceStabilizedData() %>%
     progeny(scale=FALSE) %>%
     data.frame() %>%
-    rownames_to_column(var = "SampleID") %>%
+    rownames_to_column(var = "SampleID")
+  
+  ### Plot pathway perturbation scores with PROGENy
+  p1 <- gexInfo %>%
     pivot_longer(-SampleID, names_to = "Pathway") %>%
     left_join(rownames_to_column(metaData, var = "SampleID")) %>%
     ggplot(aes(x=Pathway, y=value, color=group, fill=group)) + 
-    geom_boxplot() +
-    geom_jitter(position=position_dodge())
+    geom_boxplot(position=position_dodge2(width = 0.8, preserve = "single", padding = 0.2), fill = "white", outlier.shape = NA) +
+    geom_jitter(position=position_jitterdodge(jitter.width = 0.4, dodge.width = 0.8)) +
+    scale_color_manual(values=conditionColors, drop=FALSE) +
+    theme(
+      axis.ticks = element_blank(),
+      axis.text.x = element_text(size=7, angle=30, hjust=1),
+      legend.position = "right"
+    ) + 
+    labs(x="", y="PROGENy score")
 
-  invisible(list(figures=plots, tables=pathway_scores, rawResults=de_test, geneDict=geneDict))
+  p2 <- gexInfo %>%
+    pivot_longer(-SampleID, names_to = "Pathway") %>%
+    left_join(rownames_to_column(metaData, var = "SampleID")) %>%
+    ggplot(aes(x=Pathway, y=value, color=group, fill=group)) + 
+    geom_boxplot(position=position_dodge2(width = 0.8, preserve = "single", padding = 0.2), fill = "white", outlier.shape = NA) +
+    geom_jitter(position=position_jitterdodge(jitter.width = 0.4, dodge.width = 0.8)) +
+    scale_color_manual(values=conditionColors, drop=FALSE) +
+    theme(
+      axis.ticks = element_blank(),
+      axis.text.x = element_text(size=7, angle=30, hjust=1),
+      legend.position = "right"
+    ) + 
+    labs(x="", y="PROGENy score")
 
-}
+  p2 <- gexInfo %>%
+  column_to_rownames(var = "SampleID") %>%
+  t() %>%
+  pheatmap(
+      annotation_colors=list(condition=conditionColors),
+      annotation_legend=FALSE,
+      annotation_names_row=FALSE,
+      show_colnames=FALSE,
+      show_rownames=TRUE,
+      treeheight_col=0,
+      color=colorRampPalette(c("white", "grey", "red"))(10)
+      ) %>%
+    as.ggplot()
 
+  invisible(list(figures=plots, table=gexInfo))
 
-#' Create an overview figure with a summary heatmap and a PCA plot.
-#' 
-#' @param y edgeR matrix. Count matrix in EdgeR after normalization and dispersion calculation.
-#' @param conditions named vector. All the conditions corresponding to matrix columns.
-#' @param conditionColors named vector. Color codes for conditions. 
-#' @param normalized_counts matrix. Counts normalized as logCPM; computed from y if not supplied.
-#' 
-#' @return ggplotified EdgeR MD plot.
-draw_overview_panel <- function(y, conditions, conditionColors, normalized_counts=NULL){
-
-  y <<- y
-  mds_cls <<- conditionColors[conditions]
-  mds_lvls <<- unique(names(conditionColors))
-  p1 <- expression(
-    plotMDS(y,
-      col=mds_cls,
-      main="",
-      bty="L", 
-      cex=0.8,
-      cex.lab=0.8,
-      cex.axis=0.8,
-      mgp=c(1.5,0.5,0)
-    ),
-    legend(
-      "bottomright",
-      legend=mds_lvls, 
-      col=mds_cls, 
-      pch=19, 
-      bty="n", 
-      pt.cex=1, 
-      cex=0.8,
-      y.intersp=2
-    )
-  ) %>%
-  as.ggplot(vjust=0, scale=1) +
-    theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
-  
-  if(TRUE){ #if(is.null(normalized_counts)){
-    normalized_counts <- y %>%
-      cpm()+1 %>%
-      log2()
-  }
-  
   annots <- data.frame(condition=as.character(conditions[colnames(normalized_counts)]))
   rownames(annots) <- colnames(normalized_counts)
   
@@ -241,139 +226,6 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
       ) %>%
     as.ggplot()
 
-  plot_grid(p1, p2, labels="AUTO", nrow=2, rel_heights=c(2, 1))
-  
-}
-
-
-#' Create a multifigure panel with volcano and MD on the left and heatmap on the right.
-#' 
-#' @param heatm ggplot. Heatmap of top genes in the comparison.
-#' @param volcano ggplot. Volcano plot summary of the comparison.
-#' @param mdp ggplot. MD plot for QC purpose.
-#' 
-#' @return ggplotified EdgeR MD plot.
-draw_summary_panel <- function(heatm, volcano, mdp){
-  
-    plot_grid(
-      plot_grid(volcano, mdp, labels="AUTO", nrow=2, rel_heights=c(2, 1)),
-      heatm,
-      ncol=2,
-      labels=c("", "C"),
-      hjust=0.2
-    )
-
-}
-
-
-#' Draws an MD (mean vs. difference) plot for a given comparison.
-#' 
-#' @param de_test_result edgeR result. DE result of comparison for a single coef.
-#' 
-#' @return ggplotified EdgeR MD plot.
-draw_summary_mdplot <- function(de_test_result){
-  
-  de_test_result <<- de_test_result
-  p <- expression(
-    plotMD(de_test_result,
-      main="",
-      legend=FALSE,
-      bty="L", 
-      cex=0.8,
-      cex.lab=0.8,
-      cex.axis=0.8,
-      mgp=c(1.5,0.5,0)
-    )
-  )
-  as.ggplot(p, vjust=0, scale=1) +
-    theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
-}
-
-
-#' Draws a summary volcano plot for showing change for all genes in a given comparison 
-#' of a pair of conditions (one always being control).
-#' 
-#' @param result data.frame. Table of DE results after topTags for a single coef.
-#' @param condition string. Experimental condition we want to compare to control. 
-#' @param conditions factor. All the conditions, corresponding.
-#' @param geneDict named vector. Names to be shown if renamed.
-#' @param labelVolcano If the DE genes should be labelled on the Volcano plot. 
-#' @param topNgene integer. How many genes should be shown on the Volcano plot.
-#' @param ... arguments to be passed on to the EnhancedVolcano call. 
-#' 
-#' @return Hitlists.
-draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labelVolcano=TRUE, topNgene=25, ...){
-  
-  if(is.null(geneDict)){
-    res$gene <- rownames(res)
-  } else {
-    res$gene <- as.character(geneDict[rownames(res)])
-  }
-  topResGen <- res$gene %>%
-    .[.!=""] %>%
-    unique() %>%
-    .[1:topNgene]
-  controllabel <- levels(conditions)[[1]]
-  if(!labelVolcano){
-    topResGen <- c()
-    boxedLabels <- FALSE
-    drawConnectors <- FALSE
-  }
-  
-  volcano.colors <- ifelse(
-    res$FDR < 0.05,
-    ifelse(
-      res$logFC < -2,
-      "#3938fc",
-      ifelse(res$logFC > 2, "#fa3316", "#808080")
-    ),
-    "#d3d3d3")
-  names(volcano.colors) <- rownames(res)
-  EnhancedVolcano(
-    res,
-    lab=res$gene,
-    title=paste0('Differential Expression in\n', condition, ' vs. ', controllabel),
-    titleLabSize = 12,
-    x='logFC', y='FDR',
-    xlab = bquote(~Log~ 'fold change'),
-    pCutoff = 0.05,
-    FCcutoff = 2,
-    caption='', subtitle='',
-    legendPosition='none',
-    selectLab=topResGen,
-    drawConnectors=drawConnectors, colConnectors="grey30", boxedLabels=boxedLabels,
-    gridlines.major=FALSE, gridlines.minor=FALSE,
-    colCustom = volcano.colors,
-    borderWidth = 0.3,
-    axisLabSize=10, subtitleLabSize=1, captionLabSize=1,
-    ...
-    ) + 
-  theme(
-    axis.text.x = element_text(color="black", size=10),
-    axis.text.y = element_text(color="black", size=10),
-    plot.margin = unit(c(0.1,0,-0.1,0.25), "in")
-    )
-}
-
-
-#' Draws a summary heatmap of the top 50 genes for a pair of conditions (one always 
-#' being control).
-#' 
-#' @param result data.frame. Table of DE results after topTags for a single coef.
-#' @param condition string. Experimental condition we want to compare to control. 
-#' @param conditions factor. All the conditions, corresponding columns in count matrix.
-#' @param normalized_counts matrix. Normalized counts to be shown on the heatmap.
-#' @param conditionColors named vector. Color codes for conditions. 
-#' @param geneDict Mapping of human friendly gene names.
-#' @param clusterSamples If samples should be clustered on the heatmap.
-#' 
-#' @return Hitlists.
-draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, conditionColors, geneDict, clusterSamples){
-  
-  samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
-  annots <- data.frame(condition=as.character(conditions[samples_to_show]))
-  rownames(annots) <- colnames(normalized_counts)[samples_to_show]
-  
   normalized_counts  %>%
     .[rownames(res[1:50,]),samples_to_show] %>%
     pheatmap(
