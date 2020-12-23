@@ -138,49 +138,33 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   ]
   conditionColors <- setNames(conditionColors[1:length(levels(conditions))], levels(conditions))
   
-  design <- model.matrix(~conditions)
   geneDict <- setNames(readCounts[[2]], readCounts[[1]])
 
-  ### Use EdgeR for DE analysis
-  y <- readCounts %>%
-    column_to_rownames(colnames(.)[1]) %>%
-    .[,-1] %>%
-    DGEList(group=conditions) %>%
-    calcNormFactors() %>%
-    estimateDisp(design)
-  
-  normalized_counts <- y %>%
-    cpm()+1 %>%
-    log2()
+  ### PROGENy accepts a variance stabilized DEseq2 object as input
+  gexInfo <- readCounts %>% 
+    mutate(Gene = .[,2]) %>%
+    .[,c(-1, -2)] %>%
+    group_by(Gene) %>%
+    summarise_all(mean) %>%
+    ungroup() %>%
+    column_to_rownames(var = "Gene") %>%
+    DESeqDataSetFromMatrix(colData = metaData, design = ~group) %>%
+    estimateSizeFactors() %>%
+    estimateDispersions() %>%
+    getVarianceStabilizedData()
 
-  de_test <- y %>%
-    glmFit(design) %>%
-    list() %>%
-    rep(length(conditionOrder) - 1) %>%
-    map2(seq(2, length(conditionOrder)), glmLRT) %>%
-    setNames(conditionOrder[seq(2, length(conditionOrder))])
-  
-  de_tables <- de_test %>% 
-    map(topTags, n="Inf") %>%
-    map(pluck, 'table')
+  ### Get pathway perturbation scores with PROGENy
+  gexInfo %>%
+    progeny(scale=FALSE) %>%
+    data.frame() %>%
+    rownames_to_column(var = "SampleID") %>%
+    pivot_longer(-SampleID, names_to = "Pathway") %>%
+    left_join(rownames_to_column(metaData, var = "SampleID")) %>%
+    ggplot(aes(x=Pathway, y=value, color=group, fill=group)) + 
+    geom_boxplot() +
+    geom_jitter(position=position_dodge())
 
-  ### Compile a plot for every case (condition)
-  plots <- list(
-    heatm = map2(de_tables, names(de_tables), draw_summary_heatmap, conditions, normalized_counts, conditionColors, geneDict, clusterSamples),
-    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict, labelVolcano),
-    mdp = map(de_test, draw_summary_mdplot)
-  ) %>%
-  pmap(draw_summary_panel)
-
-  plots[["an_overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts)
-
-  de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
-
-  if(all(geneDict == names(geneDict))){
-    geneDict = NULL
-  }
-
-  invisible(list(figures=plots, tables=de_tables, rawResults=de_test, geneDict=geneDict))
+  invisible(list(figures=plots, tables=pathway_scores, rawResults=de_test, geneDict=geneDict))
 
 }
 
