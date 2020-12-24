@@ -31,10 +31,9 @@ scriptOptionalArgs <- list(
     type="logical",
     help="If samples should be clustered on the heatmap."
   ),
-  labelVolcano = list(
-    default=TRUE,
-    type="logical",
-    help="If the DE genes should be labelled on the Volcano plot."
+  expSpecies = list(
+    default="Human",
+    help="Species. Can be Human or Mouse."
   ),
   conditionColors = list(
     default=NULL,
@@ -101,13 +100,14 @@ main <- function(opt){
 #' 
 #' @param readCounts data.frame. The count matrix; first column becoming the index, second labels.
 #' @param conditionLabels character vector. Experimental condition labels. 
+#' @param expSpecies string. Species, currently Human or Mouse. 
 #' @param conditionOrder character vector. Order of conditions. Sensible to make control first. 
 #' @param conditionColors character vector. Color associated to each experimental condition. 
 #' @param clusterSamples If samples should be clustered on the heatmap.
 #' @param ... Arguments inherited from command line but not used by this function. 
 #' 
 #' @return Hitlists.
-progenyPathwayScores <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, clusterSamples=TRUE, ...){
+progenyPathwayScores <- function(readCounts, conditionLabels, expSpecies, conditionOrder=NULL, conditionColors=NULL, clusterSamples=TRUE, ...){
 
   ### Start by parsing inputs and setting some defaults
   if(is.null(conditionOrder)){
@@ -148,7 +148,7 @@ progenyPathwayScores <- function(readCounts, conditionLabels, conditionOrder=NUL
     estimateSizeFactors() %>%
     estimateDispersions() %>%
     getVarianceStabilizedData() %>%
-    progeny(scale=FALSE) %>%
+    progeny(scale=FALSE, organism = expSpecies) %>%
     data.frame() %>%
     rownames_to_column(var = "SampleID")
   
