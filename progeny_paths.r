@@ -76,10 +76,8 @@ main <- function(opt){
   genetab2tsv(progeny_results$table, paste0(outFile, ".tsv"))
   
   cat("Saving figures\n")
-  p1 <- progeny_results$figures$p1 
-  p2 <- progeny_results$figures$p2
-  p <- plot_grid(p1, p2, ncol=1)
-  fig2pdf(p, paste0(outFile, ".tsv"), height=8.64, width=7.2)
+  p <- plot_grid(progeny_results$figures$heat, progeny_results$figures$box, ncol=1)
+  fig2pdf(p, paste0(outFile, ".pdf"), height=8.64, width=7.2)
 
   invisible(NULL)
 }
@@ -132,28 +130,13 @@ progenyPathwayScores <- function(readCounts, conditionLabels, expSpecies, condit
     rownames_to_column(var = "SampleID")
   
   ### Plot pathway perturbation scores with PROGENy
-  p1 <- gexInfo %>%
-    pivot_longer(-SampleID, names_to="Pathway") %>%
-    left_join(rownames_to_column(metaData, var="SampleID")) %>%
-    ggplot(aes(x=Pathway, y=value, color=group, fill=group)) + 
-    geom_boxplot(position=position_dodge2(width=0.8, preserve="single", padding=0.2), fill="white", outlier.shape=NA) +
-    geom_jitter(position=position_jitterdodge(jitter.width=0.4, dodge.width=0.8), size=.5) +
-    scale_color_manual(values=conditionColors, drop=FALSE) +
-    theme_bw() +
-    theme(
-      axis.ticks = element_blank(),
-      axis.text.x = element_text(size=10, angle=30, hjust=1),
-      legend.position = "right",
-      legend.title=element_blank()
-    ) + 
-    labs(x="", y="PROGENy score")
 
   matrixMax <- max(gexInfo[,-1])
   matrixMin <- min(gexInfo[,-1])
   matrixRng <- max(matrixMax, abs(matrixMax))
   matrixBrk <- pretty(-matrixRng:matrixRng, n = 10)
 
-  p2 <- gexInfo %>%
+  p1 <- gexInfo %>%
   column_to_rownames(var = "SampleID") %>%
   t() %>%
   pheatmap(
@@ -173,7 +156,23 @@ progenyPathwayScores <- function(readCounts, conditionLabels, expSpecies, condit
       ) %>%
     as.ggplot()
 
-  invisible(list(figures=list(p1=p1, p2=p2), table=gexInfo))
+  p2 <- gexInfo %>%
+    pivot_longer(-SampleID, names_to="Pathway") %>%
+    left_join(rownames_to_column(metaData, var="SampleID")) %>%
+    ggplot(aes(x=Pathway, y=value, color=group, fill=group)) + 
+    geom_boxplot(position=position_dodge2(width=0.8, preserve="single", padding=0.2), fill="white", outlier.shape=NA) +
+    geom_jitter(position=position_jitterdodge(jitter.width=0.4, dodge.width=0.8), size=.5) +
+    scale_color_manual(values=conditionColors, drop=FALSE) +
+    theme_bw() +
+    theme(
+      axis.ticks = element_blank(),
+      axis.text.x = element_text(size=10, angle=30, hjust=1),
+      legend.position = "right",
+      legend.title=element_blank()
+    ) + 
+    labs(x="", y="PROGENy score")
+
+  invisible(list(figures=list(heat=p1, box=p2), table=gexInfo))
 
 }
 
