@@ -1,0 +1,38 @@
+---
+title: "{{nb_title}}"
+output: html_notebook
+---
+
+```{r}
+project_dir <- {{nb_project_dir}}
+setwd(project_dir)
+source("{{progeny_script_path}}", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+readCounts <- "{{edger_counts}}"
+
+opt <- parser4tsv(opt, "readCounts", scriptMandatoryArgs, readCounts)
+
+opt$conditionLabels <- unlist(strsplit("{{progeny_condition_labels}}", ",", fixed=TRUE))
+opt$expSpecies <- "{{progeny_species}}"
+opt$conditionOrder <- unlist(strsplit("{{progeny_condition_order}}", ",", fixed=TRUE))
+opt$conditionColors <- unlist(strsplit("{{progeny_condition_colors}}", ",", fixed=TRUE))
+```
+
+```{r}
+progeny_results <- do.call(progenyPathwayScores, opt)
+```
+
+```{r}
+head(progeny_results$table)
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+progeny_results$plots$heat
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+progeny_results$plots$box
+```

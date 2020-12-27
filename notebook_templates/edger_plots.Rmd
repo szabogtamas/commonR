@@ -13,8 +13,9 @@ setwd(project_dir)
 ```{r}
 countMatrix <- "{{edger_counts}}"
 
-opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, countMatrix)
+opt <- parser4tsv(opt, "readCounts", scriptMandatoryArgs, countMatrix)
 
+opt$conditionLabels <- unlist(strsplit("{{edger_condition_labels}}", ",", fixed=TRUE))
 opt$conditionOrder <- unlist(strsplit("{{edger_condition_order}}", ",", fixed=TRUE))
 opt$conditionColors <- unlist(strsplit("{{edger_condition_colors}}", ",", fixed=TRUE))
 ```
