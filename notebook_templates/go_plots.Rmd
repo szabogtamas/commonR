@@ -20,6 +20,7 @@ opt$conditionOrder <- unlist(strsplit("{{go_condition_order}}", ",", fixed=TRUE)
 opt$msig_species <- "{{go_species}}"
 opt$msig_category <- "{{go_maincat}}"
 opt$msig_subcategory <- "{{go_subcat}}"
+opt <- map(opt, function(x){if(x == "None") NULL else x})
 ```
 
 ```{r}

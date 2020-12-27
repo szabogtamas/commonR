@@ -21,6 +21,7 @@ outFile <- opt$outFile
 opt$plot_title  <- "{{pathview_plot_title}}"
 opt$species  <- "{{pathview_species}}"
 opt$out_path  <- "{{pathview_out_path}}"
+opt <- map(opt, function(x){if(x == "None") NULL else x})
 ```
 
 {% for pathway_name in pathway_list %}

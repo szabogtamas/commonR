@@ -19,6 +19,7 @@ opt$conditionLabels <- unlist(strsplit("{{progeny_condition_labels}}", ",", fixe
 opt$expSpecies <- "{{progeny_species}}"
 opt$conditionOrder <- unlist(strsplit("{{progeny_condition_order}}", ",", fixed=TRUE))
 opt$conditionColors <- unlist(strsplit("{{progeny_condition_colors}}", ",", fixed=TRUE))
+opt <- map(opt, function(x){if(x == "None") NULL else x})
 ```
 
 ```{r}

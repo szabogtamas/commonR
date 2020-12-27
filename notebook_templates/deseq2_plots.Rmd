@@ -18,6 +18,7 @@ opt <- parser4tsv(opt, "readCounts", scriptMandatoryArgs, countMatrix)
 opt$conditionLabels <- unlist(strsplit("{{deseq_condition_labels}}", ",", fixed=TRUE))
 opt$conditionOrder <- unlist(strsplit("{{deseq_condition_order}}", ",", fixed=TRUE))
 opt$conditionColors <- unlist(strsplit("{{deseq_condition_colors}}", ",", fixed=TRUE))
+opt <- map(opt, function(x){if(x == "None") NULL else x})
 ```
 
 ```{r}
