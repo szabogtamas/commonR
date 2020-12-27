@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-scriptDescription <- "A script that runs a default DE anlysis with edgeR for Bulk RNAseq."
+scriptDescription <- "A script that runs a default DE anlysis with DESeq2 for Bulk RNAseq."
 
 scriptMandatoryArgs <- list(
   readCounts = list(
@@ -52,7 +52,7 @@ for (rn in names(scriptOptionalArgs)){
   opt[[rn]] <- scriptOptionalArgs[[rn]][["default"]]
 }
 
-for (pk in c("tidyr", "dplyr", "purrr", "tibble", "openxlsx", "edgeR", "pheatmap", "EnhancedVolcano", "ggplot2", "cowplot", "ggplotify")){
+for (pk in c("tidyr", "dplyr", "purrr", "tibble", "openxlsx", "DESeq2", "pheatmap", "EnhancedVolcano", "ggplot2", "cowplot", "ggplotify")){
   if(!(pk %in% (.packages()))){
     library(pk, character.only=TRUE)
   }
@@ -71,8 +71,8 @@ main <- function(opt){
   opt$help <- NULL
   opt$verbose <- NULL
 
-  cat("Testing DE with EdgeR\n")
-  test_results <- do.call(testDEwithEdgeR, opt)
+  cat("Testing DE with DESeq2\n")
+  test_results <- do.call(testDEwithDeseq, opt)
   cat("Saving tables\n")
   geneDict <- test_results$geneDict
   tablenames <- test_results$tables %>%
@@ -103,7 +103,7 @@ main <- function(opt){
 }
 
 
-#' Runs DE analysis with edger on a count matrix. Condition labels should be in the
+#' Runs DE analysis with DESeq2 on a count matrix. Condition labels should be in the
 #' order as samples appear in columns.
 #' 
 #' @param readCounts data.frame. The count matrix; first column becoming the index, second labels.
@@ -115,7 +115,7 @@ main <- function(opt){
 #' @param ... Arguments inherited from command line but not used by this function. 
 #' 
 #' @return Hitlists.
-testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, clusterSamples=TRUE, labelVolcano=TRUE, ...){
+testDEwithDeseq <- function(readCounts, conditionLabels, conditionOrder=NULL, conditionColors=NULL, shrinkFc=FALSE, clusterSamples=TRUE, labelVolcano=TRUE, ...){
 
   ### Start by parsing inputs and setting some defaults
   if(is.null(conditionOrder)){
@@ -136,41 +136,57 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
   ]
   conditionColors <- setNames(conditionColors[1:length(levels(conditions))], levels(conditions))
   
-  design <- model.matrix(~conditions)
   geneDict <- setNames(readCounts[[2]], readCounts[[1]])
 
-  ### Use EdgeR for DE analysis
-  y <- readCounts %>%
-    column_to_rownames(colnames(.)[1]) %>%
-    .[,-1] %>%
-    DGEList(group=conditions) %>%
-    calcNormFactors() %>%
-    estimateDisp(design)
+  metaData <- readCounts %>%
+  colnames() %>%
+  .[c(-1, -2)] %>%
+  data.frame(group = conditions) %>%
+  column_to_rownames(var = ".")
+
+  ### Run DESeq2
+  de_test <- readCounts %>% 
+    mutate(Gene = .[,2]) %>%
+    .[,c(-1, -2)] %>%
+    group_by(Gene) %>%
+    summarise_all(mean) %>%
+    ungroup() %>%
+    column_to_rownames(var = "Gene") %>%
+    DESeqDataSetFromMatrix(colData = metaData, design = ~group) %>%
+    DESeq()
   
-  normalized_counts <- y %>%
+  normalized_counts <- de_test %>%
+    counts(normalized=TRUE) %>%
     cpm()+1 %>%
     log2()
 
-  de_test <- y %>%
-    glmFit(design) %>%
-    list() %>%
-    rep(length(conditionOrder) - 1) %>%
-    map2(seq(2, length(conditionOrder)), glmLRT) %>%
-    setNames(conditionOrder[seq(2, length(conditionOrder))])
-  
-  de_tables <- de_test %>% 
-    map(topTags, n="Inf") %>%
-    map(pluck, 'table')
+  ### Format results before saving
+  if(shrinkFc){
+    de_tables <- de_test %>%
+      resultsNames() %>%
+      .[-1] %>%
+      map(~lfcShrink(de_test, .x))
+      map(data.frame)%>%
+      map(~arrange(.x, padj))
+  } else {
+    de_tables <- de_test %>%
+      list() %>%
+      rep(length(conditionOrder) - 1) %>%
+      setNames(conditionOrder[seq(2, length(conditionOrder))]) %>%
+      imap(~results(.x, contrast=c("group", .y, conditionOrder[1]))) %>%
+      map(data.frame)%>%
+      map(~arrange(.x, padj))
+  } 
 
   ### Compile a plot for every case (condition)
   plots <- list(
-    heatm = map2(de_tables, names(de_tables), draw_summary_heatmap, conditions, normalized_counts, conditionColors, geneDict, clusterSamples),
-    volcano = map2(de_tables, names(de_tables), draw_summary_volcano, conditions, geneDict, labelVolcano),
+    heatm = imap(de_tables, draw_summary_heatmap, conditions, normalized_counts, conditionColors, geneDict, clusterSamples),
+    volcano = imap(de_tables, draw_summary_volcano, conditions, geneDict, labelVolcano),
     mdp = map(de_test, draw_summary_mdplot)
   ) %>%
   pmap(draw_summary_panel)
 
-  plots[["an_overview"]] <- draw_overview_panel(y, conditionDict, conditionColors, normalized_counts)
+  plots[["an_overview"]] <- draw_overview_panel(de_test, conditions, conditionColors, normalized_counts)
 
   de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
 
@@ -185,43 +201,21 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 
 #' Create an overview figure with a summary heatmap and a PCA plot.
 #' 
-#' @param y edgeR matrix. Count matrix in EdgeR after normalization and dispersion calculation.
+#' @param de_test DESeqDataSet. Test result object from DESeq2, containing counts and metadata.
 #' @param conditions named vector. All the conditions corresponding to matrix columns.
 #' @param conditionColors named vector. Color codes for conditions. 
-#' @param normalized_counts matrix. Counts normalized as logCPM; computed from y if not supplied.
+#' @param normalized_counts matrix. Counts normalized as log2(median of ratios); computed from de_test if not supplied.
 #' 
-#' @return ggplotified EdgeR MD plot.
-draw_overview_panel <- function(y, conditions, conditionColors, normalized_counts=NULL){
+#' @return overview plot woth PCA and heatmap.
+draw_overview_panel <- function(de_test, conditions, conditionColors, normalized_counts=NULL){
 
-  y <<- y
-  mds_cls <<- conditionColors[conditions]
-  mds_lvls <<- unique(names(conditionColors))
-  p1 <- expression(
-    plotMDS(y,
-      col=mds_cls,
-      main="",
-      bty="L", 
-      cex=0.8,
-      cex.lab=0.8,
-      cex.axis=0.8,
-      mgp=c(1.5,0.5,0)
-    ),
-    legend(
-      "bottomright",
-      legend=mds_lvls, 
-      col=mds_cls, 
-      pch=19, 
-      bty="n", 
-      pt.cex=1, 
-      cex=0.8,
-      y.intersp=2
-    )
-  ) %>%
-  as.ggplot(vjust=0, scale=1) +
-    theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
+  p1 <- de_test %>%
+    DESeqTransform() %>%
+    plotPCA(intgroup = "group")
   
-  if(TRUE){ #if(is.null(normalized_counts)){
-    normalized_counts <- y %>%
+  if(is.null(normalized_counts)){
+    normalized_counts <- de_test %>%
+      counts(normalized=TRUE) %>%
       cpm()+1 %>%
       log2()
   }
