@@ -1,0 +1,44 @@
+---
+title: "{{nb_title}}"
+output: html_notebook
+---
+
+```{r}
+project_dir <- {{nb_project_dir}}
+setwd(project_dir)
+source("{{deseq_script_path}}", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+countMatrix <- "{{deseq_counts}}"
+
+opt <- parser4tsv(opt, "readCounts", scriptMandatoryArgs, countMatrix)
+
+opt$conditionLabels <- unlist(strsplit("{{deseq_condition_labels}}", ",", fixed=TRUE))
+opt$conditionOrder <- unlist(strsplit("{{deseq_condition_order}}", ",", fixed=TRUE))
+opt$conditionColors <- unlist(strsplit("{{deseq_condition_colors}}", ",", fixed=TRUE))
+```
+
+```{r}
+test_results <- do.call(testDEwithDeseq, opt)
+```
+
+```{r}
+map(test_results$de_tables, head)
+```
+```{r}
+map(test_results$rawResults, head)
+```
+
+```{r}
+head(test_results$geneDict)
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+test_results$plots[[1]]
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+test_results$plots$an_overwiew
+```

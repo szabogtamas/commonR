@@ -11,7 +11,7 @@ setwd(project_dir)
 ```
 
 ```{r}
-readCounts <- "{{edger_counts}}"
+readCounts <- "{{count_matrix}}"
 
 opt <- parser4tsv(opt, "readCounts", scriptMandatoryArgs, readCounts)
 
