@@ -77,24 +77,28 @@ genetab2tsv <- function(tab, filename_base, primary_id="GeneID", secondary_id="S
 #' 
 #' @return list.
 parser4tsv <- function(opt, rn, rg, rv=NULL){
-  nl <- list()
   if (is.null(rv)){
     rv <- opt[[rn]]
   } else {
     rg <- rg[[rn]]
   }
-  sl <- unlist(strsplit(rv, ",", fixed=TRUE))
-  n <- 0
-  for (x in sl){
-    n <- n+1
-    x <- unlist(strsplit(x, ":", fixed=TRUE))
-    if (length(x) > 1){
-      nl[[x[1]]] <- do.call(read.csv, c(list(x[2]), rg[["readoptions"]]))
-    } else {
-      nl[[paste0("Condition_", n)]] <- do.call(read.csv, c(list(x[1]), rg[["readoptions"]]))
+  if (rg[["type"]] == "table") {
+    opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
+  } else {
+    nl <- list()
+    sl <- unlist(strsplit(rv, ",", fixed=TRUE))
+    n <- 0
+    for (x in sl){
+      n <- n+1
+      x <- unlist(strsplit(x, ":", fixed=TRUE))
+      if (length(x) > 1){
+        nl[[x[1]]] <- do.call(read.csv, c(list(x[2]), rg[["readoptions"]]))
+      } else {
+        nl[[paste0("Condition_", n)]] <- do.call(read.csv, c(list(x[1]), rg[["readoptions"]]))
+      }
     }
+    opt[[rn]] <- nl
   }
-  opt[[rn]] <- nl
   invisible(opt)
 }
 
@@ -202,11 +206,7 @@ if (!interactive()) {
             if (rg[["type"]] == "nested") {
               opt <- parser4nested(opt, rn)
             } else {
-              if (rg[["type"]] == "tables") {
-                opt <- parser4tsv(opt, rn, rg)
-              } else {
-                opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
-              }
+              opt <- parser4tsv(opt, rn, rg)
             }
           }
         }
