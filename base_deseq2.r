@@ -211,7 +211,9 @@ draw_overview_panel <- function(de_test, conditions, conditionColors, normalized
 
   p1 <- de_test %>%
     DESeqTransform() %>%
-    plotPCA(intgroup = "group")
+    plotPCA(intgroup = "group") +
+    scale_color_manual(values=conditionColors, drop=FALSE) +
+    theme_bw()
   
   if(is.null(normalized_counts)){
     normalized_counts <- de_test %>%
@@ -260,7 +262,7 @@ draw_overview_panel <- function(de_test, conditions, conditionColors, normalized
 #' @param volcano ggplot. Volcano plot summary of the comparison.
 #' @param mdp ggplot. MD plot for QC purpose.
 #' 
-#' @return ggplotified EdgeR MD plot.
+#' @return ggplotified DESeq2 MD plot.
 draw_summary_panel <- function(heatm, volcano, mdp){
   
     plot_grid(
@@ -276,9 +278,9 @@ draw_summary_panel <- function(heatm, volcano, mdp){
 
 #' Draws an MD (mean vs. difference) plot for a given comparison.
 #' 
-#' @param de_test_result edgeR result. DE result of comparison for a single coef.
+#' @param de_test_result DESeq2 result. DE result of comparison for a single coef.
 #' 
-#' @return ggplotified EdgeR MD plot.
+#' @return ggplotified DESeq2 MD plot.
 draw_summary_mdplot <- function(de_test_result){
   
   de_test_result <<- de_test_result
@@ -329,11 +331,11 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labe
   }
   
   volcano.colors <- ifelse(
-    res$FDR < 0.05,
+    res$padj < 0.05,
     ifelse(
-      res$logFC < -2,
+      res$log2FoldChange < -2,
       "#3938fc",
-      ifelse(res$logFC > 2, "#fa3316", "#808080")
+      ifelse(res$log2FoldChange > 2, "#fa3316", "#808080")
     ),
     "#d3d3d3")
   names(volcano.colors) <- rownames(res)
@@ -342,8 +344,8 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labe
     lab=res$gene,
     title=paste0('Differential Expression in\n', condition, ' vs. ', controllabel),
     titleLabSize = 12,
-    x='logFC', y='FDR',
-    xlab = bquote(~Log~ 'fold change'),
+    x='log2FoldChange', y='padj',
+    xlab = bquote(~Log2~ 'fold change'),
     pCutoff = 0.05,
     FCcutoff = 2,
     caption='', subtitle='',
