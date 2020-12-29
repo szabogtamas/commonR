@@ -247,8 +247,8 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
       show_colnames=FALSE,
       show_rownames=TRUE,
       treeheight_col=0,
-      color=colorRampPalette(c("white", "grey", "red"))(10),
-      breaks=opt_color_breaks
+      breaks=opt_color_breaks,
+      color=colorRampPalette(c("white", "grey", "red"))(10)
       ) %>%
     as.ggplot()
 
@@ -387,6 +387,11 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
   samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
   annots <- data.frame(condition=as.character(conditions[samples_to_show]))
   rownames(annots) <- colnames(normalized_counts)[samples_to_show]
+
+  gex_scale <- normalized_counts %>%
+    .[rownames(res[1:50,]),] %>%
+    max() %>%
+    floor()
   
   normalized_counts  %>%
     .[rownames(res[1:50,]),samples_to_show] %>%
@@ -398,8 +403,8 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
       show_colnames=TRUE,
       cluster_rows=FALSE,
       cluster_cols = clusterSamples,
-      color=colorRampPalette(c("white", "grey", "red"))(10),
-      breaks=seq(0, 50, 5)
+      color=colorRampPalette(c("white", "grey", "red"))(gex_scale),
+      breaks=seq(0, gex_scale)
       ) %>%
     as.ggplot()
 }

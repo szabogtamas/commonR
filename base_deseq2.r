@@ -381,7 +381,12 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
   samples_to_show <- which(conditions == condition | conditions == levels(conditions)[[1]])
   annots <- data.frame(condition=as.character(conditions[samples_to_show]))
   rownames(annots) <- colnames(normalized_counts)[samples_to_show]
-  
+
+  gex_scale <- normalized_counts %>%
+    .[rownames(res[1:50,]),] %>%
+    max() %>%
+    floor()
+
   normalized_counts  %>%
     .[rownames(res[1:50,]),samples_to_show] %>%
     pheatmap(
@@ -392,8 +397,8 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
       show_colnames=TRUE,
       cluster_rows=FALSE,
       cluster_cols = clusterSamples,
-      color=colorRampPalette(c("white", "grey", "red"))(25),
-      breaks=seq(0, 25, 1)
+      color=colorRampPalette(c("white", "grey", "red"))(gex_scale),
+      breaks=seq(0, gex_scale)
       #legend_labels = c(seq(0, 50, 5), "log2(Median of Ratios)\n")
       ) %>%
     as.ggplot()
