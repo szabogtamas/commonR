@@ -282,7 +282,6 @@ draw_summary_mdplot <- function(de_test_result){
   p <- expression(
     plotMA(de_test_result,
       main="",
-      legend=FALSE,
       bty="L", 
       cex=0.8,
       cex.lab=0.8,
