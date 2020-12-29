@@ -148,9 +148,7 @@ testDEwithEdgeR <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     calcNormFactors() %>%
     estimateDisp(design)
   
-  normalized_counts <- y %>%
-    cpm()+1 %>%
-    log2()
+  normalized_counts <- log2(cpm(y)+1)
 
   de_test <- y %>%
     glmFit(design) %>%
@@ -221,10 +219,8 @@ draw_overview_panel <- function(y, conditions, conditionColors, normalized_count
   as.ggplot(vjust=0, scale=1) +
     theme(plot.margin = unit(c(0,0,0,-0.1), "in"))
   
-  if(TRUE){ #if(is.null(normalized_counts)){
-    normalized_counts <- y %>%
-      cpm()+1 %>%
-      log2()
+  if(is.null(normalized_counts)){
+    normalized_counts <- log2(cpm(y)+1)
   }
   
   annots <- data.frame(condition=as.character(conditions[colnames(normalized_counts)]))
