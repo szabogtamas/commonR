@@ -83,7 +83,7 @@ parser4tsv <- function(opt, rn, rg, rv=NULL){
     rg <- rg[[rn]]
   }
   if (rg[["type"]] == "table") {
-    opt[[rn]] <- do.call(read.csv, c(list(opt[[rn]]), rg[["readoptions"]]))
+    opt[[rn]] <- do.call(read.csv, c(list(rv), rg[["readoptions"]]))
   } else {
     nl <- list()
     sl <- unlist(strsplit(rv, ",", fixed=TRUE))
