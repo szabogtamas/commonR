@@ -333,6 +333,9 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labe
     topResGen <- c()
     boxedLabels <- FALSE
     drawConnectors <- FALSE
+  } else {
+    boxedLabels <- TRUE
+    drawConnectors <- TRUE
   }
   
   volcano.colors <- ifelse(

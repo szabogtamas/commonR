@@ -122,7 +122,7 @@ testDEwithDeseq <- function(readCounts, conditionLabels, conditionOrder=NULL, co
     conditionOrder = unique(conditionLabels)
   }
   conditionDict <- setNames(conditionLabels, colnames(readCounts[c(-1, -2)]))
-    
+
   conditions <- factor(conditionLabels, levels=conditionOrder)
   
   if (is.null(conditionColors)){
@@ -146,46 +146,44 @@ testDEwithDeseq <- function(readCounts, conditionLabels, conditionOrder=NULL, co
 
   ### Run DESeq2
   de_test <- readCounts %>% 
-    mutate(Gene = .[,2]) %>%
+    #mutate(Gene = .[,2]) %>%
+    mutate(Gene = .[,1]) %>% #To harmonize with current EdgeR appproach, ENSEMBL ID is used instead of Symbol
     .[,c(-1, -2)] %>%
-    group_by(Gene) %>%
-    summarise_all(mean) %>%
-    ungroup() %>%
+    #group_by(Gene) %>%
+    #summarise_all(mean) %>%
+    #ungroup() %>%
     column_to_rownames(var = "Gene") %>%
     DESeqDataSetFromMatrix(colData = metaData, design = ~group) %>%
     DESeq()
   
-  normalized_counts <- de_test %>%
-    counts(normalized=TRUE) %>%
-    cpm()+1 %>%
-    log2()
+  normalized_counts <- log2(counts(de_test, normalized=TRUE) + 1)
 
   ### Format results before saving
   if(shrinkFc){
-    de_tables <- de_test %>%
+    de_res <- de_test %>%
       resultsNames() %>%
       .[-1] %>%
       map(~lfcShrink(de_test, .x))
-      map(data.frame)%>%
-      map(~arrange(.x, padj))
   } else {
-    de_tables <- de_test %>%
+    de_res <- de_test %>%
       list() %>%
       rep(length(conditionOrder) - 1) %>%
       setNames(conditionOrder[seq(2, length(conditionOrder))]) %>%
-      imap(~results(.x, contrast=c("group", .y, conditionOrder[1]))) %>%
-      map(data.frame)%>%
-      map(~arrange(.x, padj))
-  } 
+      imap(~results(.x, contrast=c("group", .y, conditionOrder[1])))
+  }
+   
+  de_tables <- de_res %>%
+    map(data.frame)%>%
+    map(~arrange(.x, padj))
 
   ### Compile a plot for every case (condition)
   plots <- list(
     heatm = imap(de_tables, draw_summary_heatmap, conditions, normalized_counts, conditionColors, geneDict, clusterSamples),
     volcano = imap(de_tables, draw_summary_volcano, conditions, geneDict, labelVolcano),
-    mdp = map(de_test, draw_summary_mdplot)
+    mdp = map(de_res, draw_summary_mdplot)
   ) %>%
   pmap(draw_summary_panel)
-
+  
   plots[["an_overview"]] <- draw_overview_panel(de_test, conditions, conditionColors, normalized_counts)
 
   de_tables[["normalized_matrix"]] <- as.data.frame(normalized_counts)
@@ -216,12 +214,9 @@ draw_overview_panel <- function(de_test, conditions, conditionColors, normalized
     theme_bw()
   
   if(is.null(normalized_counts)){
-    normalized_counts <- de_test %>%
-      counts(normalized=TRUE) %>%
-      cpm()+1 %>%
-      log2()
+    normalized_counts <- log2(counts(de_test, normalized=TRUE) + 1)
   }
-  
+
   annots <- data.frame(condition=as.character(conditions[colnames(normalized_counts)]))
   rownames(annots) <- colnames(normalized_counts)
   
@@ -246,8 +241,8 @@ draw_overview_panel <- function(de_test, conditions, conditionColors, normalized
       show_colnames=FALSE,
       show_rownames=TRUE,
       treeheight_col=0,
-      color=colorRampPalette(c("white", "grey", "red"))(10),
-      breaks=opt_color_breaks
+      #breaks=opt_color_breaks,
+      color=colorRampPalette(c("white", "grey", "red"))(10)
       ) %>%
     as.ggplot()
 
@@ -282,10 +277,10 @@ draw_summary_panel <- function(heatm, volcano, mdp){
 #' 
 #' @return ggplotified DESeq2 MD plot.
 draw_summary_mdplot <- function(de_test_result){
-  
+
   de_test_result <<- de_test_result
   p <- expression(
-    plotMD(de_test_result,
+    plotMA(de_test_result,
       main="",
       legend=FALSE,
       bty="L", 
@@ -313,7 +308,7 @@ draw_summary_mdplot <- function(de_test_result){
 #' 
 #' @return Hitlists.
 draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labelVolcano=TRUE, topNgene=25, ...){
-  
+
   if(is.null(geneDict)){
     res$gene <- rownames(res)
   } else {
@@ -328,6 +323,9 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labe
     topResGen <- c()
     boxedLabels <- FALSE
     drawConnectors <- FALSE
+  } else {
+    boxedLabels <- TRUE
+    drawConnectors <- TRUE
   }
   
   volcano.colors <- ifelse(
@@ -339,6 +337,7 @@ draw_summary_volcano <- function(res, condition, conditions, geneDict=NULL, labe
     ),
     "#d3d3d3")
   names(volcano.colors) <- rownames(res)
+
   EnhancedVolcano(
     res,
     lab=res$gene,
@@ -394,8 +393,9 @@ draw_summary_heatmap <- function(res, condition, conditions, normalized_counts, 
       show_colnames=TRUE,
       cluster_rows=FALSE,
       cluster_cols = clusterSamples,
-      color=colorRampPalette(c("white", "grey", "red"))(10),
-      breaks=seq(0, 50, 5)
+      color=colorRampPalette(c("white", "grey", "red"))(25),
+      breaks=seq(0, 25, 1)
+      #legend_labels = c(seq(0, 50, 5), "log2(Median of Ratios)\n")
       ) %>%
     as.ggplot()
 }
