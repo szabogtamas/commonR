@@ -9,6 +9,7 @@ RUN install2.r --error \
     openxlsx \
     survival \
     survminer \
+    DESeq2 \
     msigdbr \
     pheatmap
 
@@ -21,7 +22,7 @@ RUN R -e "BiocManager::install('progeny')"
 RUN R -e "BiocManager::install('pathview')"
 RUN R -e "BiocManager::install('clusterProfiler')"
 RUN R -e "BiocManager::install('edgeR')"
-RUN R -e "BiocManager::install('DESeq2')"
+#RUN R -e "BiocManager::install('DESeq2')"
 RUN R -e "BiocManager::install('DEFormats')"
 RUN R -e "BiocManager::install('HTqPCR')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
