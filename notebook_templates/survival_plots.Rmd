@@ -1,0 +1,37 @@
+---
+title: "{{nb_title}}"
+output: html_notebook
+---
+
+```{r}
+project_dir <- {{nb_project_dir}}
+setwd(project_dir)
+source("{{survival_script_path}}", chdir=TRUE)
+setwd(project_dir)
+```
+
+```{r}
+survivalTab <- "{{survival_info}}"
+
+opt <- parser4tsv(opt, "survivalTab", scriptMandatoryArgs, survivalTab)
+
+opt$eventLabel <- "{{survival_event_label}}"
+opt$timeLabel <- "{{survival_time_label}}"
+opt$gexLabel <- "{{survival_gex_label}}"
+opt$legendLabel <- "{{survival_legend_label}}"
+opt$survivalLabel <- "{{survival_survival_label}}"
+opt$conditionLabels <- unlist(strsplit("{{survival_condition_labels}}", ",", fixed=TRUE))
+opt$shortLabels <- unlist(strsplit("{{survival_condition_short}}", ",", fixed=TRUE))
+opt$conditionColors <- unlist(strsplit("{{survival_condition_colors}}", ",", fixed=TRUE))
+opt$pctHigh <- "{{survival_pct_high}}"
+opt$pctLow <- "{{survival_pct_low}}"
+opt <- map(opt, function(x){if(x == "None") NULL else x})
+```
+
+```{r}
+survival_plot <- do.call(plotKMpair, opt)
+```
+
+```{r fig.width=7.2, fig.height=3.6}
+survival_plot
+```
