@@ -30,10 +30,10 @@ progeny_results <- do.call(progenyPathwayScores, opt)
 head(progeny_results$table)
 ```
 
-```{r fig.width=7.2, fig.height=2.4}
+```{r fig.width=7.2, fig.height=3.6}
 progeny_results$plots$heat
 ```
 
-```{r fig.width=7.2, fig.height=2.4}
+```{r fig.width=7.2, fig.height=3.6}
 progeny_results$plots$box
 ```
