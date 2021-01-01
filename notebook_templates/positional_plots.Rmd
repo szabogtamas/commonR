@@ -1,0 +1,39 @@
+---
+title: "Testing"
+output: html_notebook
+---
+
+```{r}
+project_dir <- "/home/szabo/dev_packages/commonR/"
+setwd(project_dir)
+source("/home/szabo/dev_packages/commonR/positional_effect.r", chdir=TRUE)
+```
+
+```{r}
+setwd(project_dir)
+table_paths <- "/home/szabo/myScratch/DiffExpr/rnaSeqHCT116/tables/edge_Bax___Bak DKO.tsv"
+
+opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, table_paths)
+
+#opt$conditionOrder <- unlist(strsplit("{{gsea_condition_order}}", ",", fixed=TRUE))
+opt$conditionOrder <- c("Condition_1")
+
+
+opt$msig_species <- "Homo sapiens"
+opt <- map(opt, function(x){if(x == "None") NULL else x})
+```
+
+```{r}
+positional_plots <- do.call(plot_positional, opt[!(names(opt) %in% c(
+  "outPrefix", "commandRpath", "outFile"
+))])
+print("\n")
+print(names(positional_plots$enrichments))
+```
+
+```{r fig.width=7.2, fig.height=3.6}
+positional_plots$genedot
+```
+```{r fig.width=7.2, fig.height=2.4}
+positional_plots$topology
+```
