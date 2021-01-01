@@ -9,9 +9,9 @@ RUN install2.r --error \
     openxlsx \
     survival \
     survminer \
-    DESeq2 \
     msigdbr \
-    pheatmap
+    pheatmap \
+    lattice
 
 
 RUN R -e "BiocManager::install('HPAanalyze')"
