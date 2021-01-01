@@ -144,7 +144,7 @@ main <- function(opt){
 #' @usage plot_gsea(scoreTables, geneSet=NULL, verbose=TRUE, ...)
 #' @return list two output plots and also the enrichments
 #' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
-#' significance, while size shows...
+#' significance, while size shows direction of change.
 
 #' @examples
 #' plot_gsea(scoreTables)
