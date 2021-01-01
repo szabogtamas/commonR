@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:3.6.3
+FROM rocker/tidyverse:4.0
 
 RUN sudo apt update
 RUN sudo apt-get install -y r-cran-lattice
