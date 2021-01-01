@@ -171,15 +171,15 @@ plot_gsea <- function(
     universe <- unique(geneSet$gene_symbol)
   }
 
-  if (!exists("conditionOrder")){
-    conditionOrder <- names(scoreTables)
-  }
+  additional_args <- list(...)
+  plot_title <- additional_args[["plot_title"]]
+  n_to_show <- additional_args[["n_to_show"]]
+  geneset_dist_plot <- additional_args[["geneset_dist_plot"]]
+  conditionOrder <- additional_args[["conditionOrder"]]
+  conditionColors <- additional_args[["conditionColors"]]
+
   if(is.null(conditionOrder)){
     conditionOrder <- names(scoreTables)
-  }
-
-  if (!exists("conditionColors")){
-    conditionColors <- default_colors
   }
   if(is.null(conditionColors)){
     conditionColors <- default_colors
@@ -188,13 +188,6 @@ plot_gsea <- function(
   if(verbose){
     cat("Looking for gene set enrichments\n")
   }
-
-  additional_args <- list(...)
-  plot_title <- additional_args[["plot_title"]]
-  n_to_show <- additional_args[["n_to_show"]]
-  conditionOrder <- additional_args[["conditionOrder"]]
-  conditionColors <- additional_args[["conditionColors"]]
-  geneset_dist_plot <- additional_args[["geneset_dist_plot"]]
   additional_args <- additional_args[!(names(additional_args) %in% c(
     "plot_title", "n_to_show", "geneset_dist_plot", "conditionOrder", "conditionColors"
   ))] 
