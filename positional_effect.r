@@ -1,12 +1,14 @@
 #!/usr/bin/env Rscript
 
-scriptDescription <- "A script that takes a DE result and check overrepresented genomic locations via GSEA."
+source("gsea_ontologies.r", local=TRUE)
+
+scriptDescription <- "A script that takes a DE result and checks overrepresented genomic locations via GSEA."
 
 scriptMandatoryArgs <- list(
   scoreTables = list(
     abbr="-i",
     type="tables",
-    help="Tables with unique ID and name as first two column and numeric as rest.",
+    help="Tables with unique ID and name as first two columns and numeric as rest.",
     readoptions=list(stringsAsFactors=FALSE, sep="\t")
   ),
   outFile = list(
@@ -65,7 +67,6 @@ for (
   }
 }
 
-
 #' The main function of the script, executed only if called from command line.
 #' Calls subfunctions according to supplied command line arguments.
 #' 
@@ -81,47 +82,56 @@ main <- function(opt){
   opt$commandRpath <- NULL
   opt$help <- NULL
 
-  opt$geneSet <- download_ontologies(opt$msig_species, "C1", NULL)
-  p <- do.call(plot_gsea, opt[!(names(opt) %in% c("msig_species"))])
+  opt$geneSet <- download_ontologies(opt$sig_species, "C1", NULL)
+  p <- do.call(plot_positional, opt)
   
   if(opt$verbose){
     cat("Combining subplots and saving figure\n")
   }
-  p <- plot_grid(p$genedot, p$setchange, nrow=2, labels="AUTO")
+  p <- plot_grid(p$genedot, p$topology, nrow=2, labels="AUTO")
 
   fig2pdf(p, outFile, height=9.6, width=7.2)
 }
 
 
-#' Create a one-page figure showing top enriched gene sets (pathways) based on GSEA.
+#' Create a one-page figure showing topological distribution of gene expression and the
+#' probability of certain chromosomal regions being enriched based on GSEA.
 #' 
 #' @description Downoads gene set information from MSigDB for a given species, runs
 #' Gene Set Enrichment Analysis and compiles a figure with 2 subplots: dotplot of gene
-#' sets and ridgeplot showing distribution of gene expression change in top gene sets.
+#' sets and a Manhattan-like plot showing topological distribution of gene expression.
 #' 
 #' @param scoreTables list. A named list of dataframes with gene ID in the first column,
-#' symbol in the second
+#' symbol in the second and a score; typically logFC.
 #' @param geneSet dataframe. Gene set membership of genes.
-#' @param score_column string. Name of column with scores. Third column if not specified.
+#' @param msig_species string. Species of origin for genes.
+#' @param score_column string. Name of column with scores. The logFC column if not specified.
 #' @param universe character vector. All genes in the organism.
 #' @param verbose logical. Whether progress messages should be printed.
+#' @param pAdjustMethod string. If adjustment of GSEA p-value is needed, the method can be specfied.
+#' @param pvalueCutoff float. The cutoff value for enrichments.
+#' @param n_to_show. Maximum number of enriched gene sets to show.
 #' @param ... ellipse. Arguments to be passed on to the enricher function.
-#' @usage plot_gsea(scoreTables, geneSet=NULL, verbose=TRUE, ...)
-#' @return list two output plots and also the enrichments
+#' @usage plot_positional(scoreTables, geneSet=NULL, verbose=TRUE, pAdjustMethod="none", pvalueCutoff=0.05, ...)
+#' @return list. Two output plots and also the enrichments.
 #' @details Dotplot of gene sets shows top enriched gene sets. Color corresponds to
-#' significance, while size shows...
+#' significance, while size shows the direction of the change.
 
 #' @examples
-#' plot_gsea(scoreTables)
-#' plot_gsea(scoreTables, geneSet)
-#' plot_gsea(scoreTables, geneSet)
-#' plot_gsea(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
-plot_gsea <- function(
+#' plot_positional(scoreTables)
+#' plot_positional(scoreTables, geneSet)
+#' plot_positional(scoreTables, geneSet)
+#' plot_positional(scoreTables, geneSet, score_column="logFC", verbose=TRUE, pAdjustMethod="BH")
+plot_positional <- function(
   scoreTables,
   geneSet=NULL,
+  msig_species="Mus musculus",
   score_column=NULL,
   universe=NULL,
   verbose=TRUE,
+  pAdjustMethod="none",
+  pvalueCutoff=0.05,
+  n_to_show=20,
   ...
   ){
 
@@ -129,42 +139,35 @@ plot_gsea <- function(
     if(verbose){
       cat("Downloading deafault ontology set\n")
     }
-    geneSet <- download_ontologies()
+    geneSet <- download_ontologies(msig_species, "C1", NULL)
   }
 
   if(is.null(universe)){
     universe <- unique(geneSet$gene_symbol)
   }
 
-  if (!exists("conditionOrder")){
-    conditionOrder <- names(scoreTables)
-  }
+  additional_args <- list(...)
+  plot_title <- additional_args[["plot_title"]]
+  conditionOrder <- additional_args[["conditionOrder"]]
+  conditionColors <- additional_args[["conditionColors"]]
+ 
   if(is.null(conditionOrder)){
     conditionOrder <- names(scoreTables)
-  }
-
-  if (!exists("conditionColors")){
-    conditionColors <- default_colors
   }
   if(is.null(conditionColors)){
     conditionColors <- default_colors
   }
   
   if(verbose){
-    cat("Looking for gene set enrichments\n")
+    cat("Enrichments of chromosomal locations\n")
   }
-
-  additional_args <- list(...)
-  plot_title <- additional_args[["plot_title"]]
-  n_to_show <- additional_args[["n_to_show"]]
-  conditionOrder <- additional_args[["conditionOrder"]]
-  conditionColors <- additional_args[["conditionColors"]]
-  geneset_dist_plot <- additional_args[["geneset_dist_plot"]]
   additional_args <- additional_args[!(names(additional_args) %in% c(
-    "plot_title", "n_to_show", "geneset_dist_plot", "conditionOrder", "conditionColors"
+    "plot_title", "conditionOrder", "conditionColors"
   ))] 
   additional_args[["geneSet"]] <- geneSet
   additional_args[["score_column"]] <- score_column
+  additional_args[["pAdjustMethod"]] <- pAdjustMethod
+  additional_args[["pvalueCutoff"]] <- pvalueCutoff
 
   enrichments <- list()
   for (condition in names(scoreTables)){
@@ -179,92 +182,42 @@ plot_gsea <- function(
   p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show, conditionOrder)
   
   if(verbose){
-    cat("Plotting distibution of changes in top gene sets\n")
+    cat("Plotting topological distibution of fold changes\n")
   }
-  if (geneset_dist_plot == "ridge") {
-    p2 <- gsea_ridges(enrichments, n_to_show, topsets=p1$topsets)
+  p2 <- plot_local_changes(scoreTables, geneSet, score_column=score_column)
+  
+  invisible(list(genedot=p1$plot, topology=p2, enrichments=enrichments, topsets=p1$topsets))
+
+}
+
+
+#' Show fold changes accross chromosomes
+#' 
+#' @description Takes a list of tables with scores of genes for different conditions and
+#' Shows gene expression changes along chromosomal positions to help spot structural effects. 
+#' This score is typically logFC.
+#' 
+#' @param scoreTables dataframe. A list of tables with scores of genes for different conditions.
+#' @param geneSet dataframe. Gene set membership of genes.
+#' @param score_column string. Name of column with scores. The logFC column if not specified.
+#' @usage plot_local_changes(scoreTables, geneSet, score_column=NULL)
+#' @return ggplot showing fold change of genes on a band
+
+#' @examples
+#' plot_local_changes(scoreTables, geneSet)
+#' plot_local_changes(scoreTables, geneSet, score_column="logFC")
+plot_local_changes <- function(scoreTables, geneSet, score_column=NULL){
+  
+  if(is.null(score_column)){
+    score_column <- "logFC"
+  }
+  if(score_column == "logFC"){
+    colrenames <- setNames(c(score_column), c("logFC"))
   } else {
-    p2 <- gsea_boxes(enrichments, n_to_show, conditionOrder, conditionColors, topsets=p1$topsets)
+    colrenames <- setNames(c(score_column, "logFC"), c("logFC", "logFC1"))
   }
   
-  invisible(list(genedot=p1$plot, setchange=p2, enrichments=enrichments, topsets=p1$topsets))
-
-}
-
-
-#' Show fold changes accross chromosomes
-#' 
-#' @description Takes a table with scores associated to gene names or symbols. 
-#' This score is typically logFC, but can also be p-value. GSEA is carried out after
-#' sorting based on score. 
-#' 
-#' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
-#' @param conditionName string. Name of the condition to be shown on plot.
-#' @param geneSet dataframe. Gene set membership of genes.
-#' @param score_column string. Name of column with scores. Third column if not specified.
-#' @usage gsea_local_enrichments(hitGenes, geneSet, score_column=NULL)
-#' @return encrichement result
-
-#' @examples
-#' gsea_local_enrichments(scoreTable, conditionName, geneSet)
-#' gsea_local_enrichments(hitGenes, conditionName, geneSet, score_column="logFC")
-fc_local <- function(scoreTable, conditionName, geneSet, score_column=NULL){
-
-gene_positions <- opt$geneSet %>%
-  mutate(
-    chromosome = stringr:::str_extract(gs_name, "chr(X|Y|\\d*)"),
-    chromosomen = stringr:::str_replace(chromosome, "chrX", "23"),
-    chromosomen = stringr:::str_replace(chromosomen, "chrY", "24"),
-    chromosomen = stringr:::str_replace(chromosomen, "chr", ""),
-    chromosomen = as.numeric(chromosomen),
-    band = stringr:::str_replace(gs_name, "chr\\d*", ""),
-    band = stringr:::str_replace_all(band, "q", "-"),
-    band = stringr:::str_replace_all(band, "[a-zA-Z]", ""),
-    band = as.numeric(band),
-    band = ifelse(band < 0, band + 10, band - 10),
-    location = 100 * chromosomen + band
-  )
-
-p <- scoreTables %>%
-  imap(~mutate(.x, condition = .y)) %>%
-  bind_rows() %>%
-  left_join(gene_positions, by = c(Symbol = "gene_symbol")) %>%
-  mutate(
-    condition = factor(condition),
-    chromosome = factor(chromosome)
-  ) %>%
-  ggplot(aes(x=band, y=logFC, color=logFC)) +
-    geom_point() +
-    facet_grid(rows = vars(condition), cols = vars(chromosome), scales = "free") +
-    scale_color_gradientn(
-      colors=c('#2b8cbe', '#00bfff', 'grey', 'grey', 'grey', '#e38071', '#e31e00'),
-      breaks=c(-4, -2, -1, 0, 1, 2, 4),
-      limits=c(-4, 4), oob = scales::squish
-    )
-
-  return(p)
-}
-
-
-#' Show fold changes accross chromosomes
-#' 
-#' @description Takes a table with scores associated to gene names or symbols. 
-#' This score is typically logFC, but can also be p-value. GSEA is carried out after
-#' sorting based on score. 
-#' 
-#' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
-#' @param conditionName string. Name of the condition to be shown on plot.
-#' @param geneSet dataframe. Gene set membership of genes.
-#' @param score_column string. Name of column with scores. Third column if not specified.
-#' @usage gsea_local_enrichments(hitGenes, geneSet, score_column=NULL)
-#' @return encrichement result
-
-#' @examples
-#' gsea_local_enrichments(scoreTable, conditionName, geneSet)
-#' gsea_local_enrichments(hitGenes, conditionName, geneSet, score_column="logFC")
-plot_local_changes <- function(scoreTable, conditionName, geneSet, score_column=NULL){
-
-gene_positions <- opt$geneSet %>%
+gene_positions <- geneSet %>%
   mutate(
     is_mitochondr = grepl("MT", gs_name),
     chromosome = str_extract(gs_name, "chr(X|Y|\\d*)"),
@@ -282,12 +235,14 @@ gene_positions <- opt$geneSet %>%
     location = 100 * chromosomen + band
   )
 
-
 scoreTables %>%
   imap(~mutate(.x, condition = .y)) %>%
   bind_rows() %>%
   left_join(gene_positions, by = c(Symbol = "gene_symbol")) %>%
   filter(!is.na(chromosome)) %>%
+  rename(
+    any_of(colrenames)
+  ) %>%
   mutate(
     condition = factor(condition),
     chromosome = factor(chromosome, levels = c(
@@ -305,7 +260,7 @@ scoreTables %>%
   ) %>%
   ggplot(aes(x=band)) +
     facet_grid(rows = vars(condition), cols = vars(chromosome), scales = "free", switch="both") +
-    geom_point(aes(y = logFC, color = logFC)) +
+    geom_point(aes(y = logFC, color = logFC), size=0.5) +
     geom_ribbon(aes(ymin = q1_logFC, ymax = q3_logFC), fill = "#F9E076") +
     geom_line(aes(y = median_logFC)) +
     scale_color_gradientn(
@@ -315,94 +270,18 @@ scoreTables %>%
     ) +
     theme_bw() +
     theme(
-      strip.text.y.left = element_text(size=8, angle = 0),
-      strip.text.x.bottom = element_text(size=6, angle = 60, margin=margin(t=2, r=7, b=7, l=7)),
+      strip.text.y.left = element_text(size=8, angle=0, vjust=0),
+      strip.text.x.bottom = element_text(size=6, angle=60, margin=margin(t=2, r=7, b=7, l=7)),
       strip.background = element_rect(colour="white", fill="#ffffff"),
       axis.text.x = element_blank(),
       axis.text.y = element_blank(),
       axis.ticks = element_blank(),
       panel.border = element_blank(),
       panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank()
+      panel.grid.minor = element_blank(),
+      panel.spacing = unit(0.1, "lines")
     ) + 
-    labs(x="", y="logFC")
-
-  return(p)
-}
-
-
-#' Do GSEA analysis for a set of genes with numerical scores (e.g.: expression) with
-#' ClusterProfiler on chromosomal locations (bands).
-#' 
-#' @description Takes a table with scores associated to gene names or symbols. 
-#' This score is typically logFC, but can also be p-value. GSEA is carried out after
-#' sorting based on score. 
-#' 
-#' @param scoreTable dataframe. A table with ID in the first column, symbol in the second.
-#' @param conditionName string. Name of the condition to be shown on plot.
-#' @param geneSet dataframe. Gene set membership of genes.
-#' @param score_column string. Name of column with scores. Third column if not specified.
-#' @usage gsea_local_enrichments(hitGenes, geneSet, score_column=NULL)
-#' @return encrichement result
-
-#' @examples
-#' gsea_local_enrichments(scoreTable, conditionName, geneSet)
-#' gsea_local_enrichments(hitGenes, conditionName, geneSet, score_column="logFC")
-gsea_local_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NULL){
-
-  cn <- colnames(scoreTable)
-  if (is.null(score_column)){
-    score_column <- cn[3]
-  }
-  genesym <- cn[2]
-  scoreTable <- scoreTable %>%
-    distinct(across(one_of(c(genesym))), .keep_all = TRUE)
-  hitGenes <- scoreTable[[score_column]]
-  names(hitGenes) <- scoreTable[[genesym]]
-  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
-  hitGenes <- hitGenes[!is.na(hitGenes)]
-
-  enrichment <- clusterProfiler::GSEA(
-    hitGenes,
-    TERM2GENE=geneSet,
-    pAdjustMethod="none",
-    pvalueCutoff=1
-  )
-  enrichment@result <- enrichment@result %>%
-    mutate(
-      absNES = abs(NES),
-      group = conditionName
-    ) %>%
-    arrange(desc(absNES))
-  
-  return(enrichment)
-}
-
-
-#' Download gene ontologies: a knowledge set is downloaded from MSigDB.
-#' 
-#' @description Downloeds gene ontologies (primarily the "Biological Process" section)
-#' as a dataframe, prettifies ontology names and removes extra columns not needed for
-#' the enrichment analysis.
-#' 
-#' @param msig_species string. Species for mapping gene symbols. 
-#' @param msig_category string. The section of MSigDB. 
-#' @param msig_subcategory string. A subsection of MSigDB. 
-#' @usage download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
-#' @return data frame with gene ontology membership of gene symbols
-
-#' @examples
-#' download_ontologies(msig_species="Mus musculus", msig_category="C5", msig_subcategory="BP")
-#' download_ontologies()
-download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt$msig_category, msig_subcategory=opt$msig_subcategory){
-
-  geneSet <- msigdbr(species=msig_species, category=msig_category, subcategory=msig_subcategory)
-  geneSet$gs_name <- gsub('GO_', '', geneSet$gs_name)
-  geneSet$gs_name <- gsub('KEGG_', '', geneSet$gs_name)
-  geneSet$gs_name <- gsub('HALLMARK_', '', geneSet$gs_name)
-  geneSet$gs_name <- gsub('_', ' ', geneSet$gs_name)
-  geneSet <- geneSet[,c('gs_name', 'gene_symbol')]
-  return(geneSet)
+    labs(x="", y="", color=score_column)
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
