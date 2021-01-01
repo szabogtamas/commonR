@@ -121,11 +121,12 @@ progenyPathwayScores <- function(readCounts, conditionLabels, expSpecies, condit
     summarise_all(mean) %>%
     ungroup() %>%
     column_to_rownames(var="Gene") %>%
+    round() %>%
     DESeqDataSetFromMatrix(colData = metaData, design = ~group) %>%
     estimateSizeFactors() %>%
     estimateDispersions() %>%
     getVarianceStabilizedData() %>%
-    progeny(scale=FALSE, organism = expSpecies) %>%
+    progeny(scale=FALSE, organism=expSpecies) %>%
     data.frame() %>%
     rownames_to_column(var = "SampleID")
   
