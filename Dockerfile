@@ -1,7 +1,8 @@
-FROM rocker/tidyverse:4.0
+FROM rocker/tidyverse
 
-RUN sudo apt update
-RUN sudo apt-get install -y r-cran-lattice
+# Not recommended with Rocker, but this is the only workaround that fixes DESeq2
+#RUN sudo apt update
+#RUN sudo apt-get install -y r-cran-lattice
 
 RUN install2.r --error \
     --deps TRUE \
