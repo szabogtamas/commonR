@@ -1,0 +1,262 @@
+---
+title: "No name"
+output: html_notebook
+---
+
+```{r}
+project_dir <- "/home/szabo/dev_packages/commonR/"
+suppressWarnings(setwd(project_dir))
+source("/home/szabo/dev_packages/commonR/positional_effect.r", chdir=TRUE)
+```
+
+```{r}
+suppressWarnings(setwd(project_dir))
+
+table_paths <- "/home/szabo/myScratch/DiffExpr/rnaSeqHCT116/tables/edge_Bax___Bak DKO.tsv"
+
+opt <- parser4tsv(opt, "scoreTables", scriptMandatoryArgs, table_paths)
+
+opt$msig_species <- "Homo sapiens"
+```
+
+```{r}
+opt$geneSet <- download_positional_ontologies(opt$msig_species, "C1", NULL)
+p <- do.call(plot_positional, opt[!(names(opt) %in% c("msig_species"))])
+```
+
+
+```{r}
+scoreTables <- opt$scoreTables
+names(scoreTables)
+```
+
+
+```{r}
+
+additional_args <- list()
+additional_args[["geneSet"]] <- opt$geneSet
+additional_args[["score_column"]] <- "logFC"
+additional_args[["pAdjustMethod"]] <- "none"
+additional_args[["pvalueCutoff"]] <- 0.05
+
+enrichments <- list()
+  for (condition in names(scoreTables)){
+    additional_args[["scoreTable"]] <- scoreTables[[condition]]
+    additional_args[["conditionName"]] <- condition
+    enrichments[[condition]] <- do.call(gsea_enrichments, additional_args)
+  }
+
+names(enrichments)
+```
+```{r}
+gsea_enrichdot(enrichments, "Test plot", 20)
+```
+
+
+```{r}
+fc_local <- function(scoreTables, geneSet, score_column=NULL){
+
+gene_positions <- geneSet %>%
+  mutate(
+    chromosome = stringr:::str_extract(gs_name, "chr(X|Y|\\d*)"),
+    chromosomen = stringr:::str_replace(chromosome, "chrX", "23"),
+    chromosomen = stringr:::str_replace(chromosomen, "chrY", "24"),
+    chromosomen = stringr:::str_replace(chromosomen, "chr", ""),
+    chromosomen = as.numeric(chromosomen),
+    band = stringr:::str_replace(gs_name, "chr\\d*", ""),
+    band = stringr:::str_replace_all(band, "q", "-"),
+    band = stringr:::str_replace_all(band, "[a-zA-Z]", ""),
+    band = as.numeric(band),
+    band = ifelse(band < 0, band + 10, band - 10),
+    location = 100 * chromosomen + band
+  )
+
+p <- scoreTables %>%
+  imap(~mutate(.x, condition = .y)) %>%
+  bind_rows() %>%
+  left_join(gene_positions, by = c(Symbol = "gene_symbol")) %>%
+  mutate(
+    condition = factor(condition),
+    chromosome = factor(chromosome)
+  ) %>%
+  ggplot(aes_string(x="band", y=score_column, color=score_column)) +
+    geom_point(size=0.5) +
+    facet_grid(rows = vars(condition), cols = vars(chromosome), scales = "free") +
+    scale_color_gradientn(
+      colors=c('#2b8cbe', '#00bfff', 'grey', 'grey', 'grey', '#e38071', '#e31e00'),
+      breaks=c(-4, -2, -1, 0, 1, 2, 4),
+      limits=c(-4, 4), oob = scales::squish
+    ) +
+    theme_bw() +
+    theme(
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_blank()
+    )
+
+  return(p)
+}
+
+fc_local(opt$scoreTables, opt$geneSet, score_column="logFC")
+```
+
+```{r}
+plot_local_changes <- function(scoreTables, geneSet, score_column=NULL){
+  
+  if(is.null(score_column)){
+    score_column <- "logFC"
+  }
+  if(score_column == "logFC"){
+    colrenames <- setNames(c(score_column), c("logFC"))
+  } else {
+    colrenames <- setNames(c(score_column, "logFC"), c("logFC", "logFC1"))
+  }
+  
+gene_positions <- geneSet %>%
+  mutate(
+    is_mitochondr = grepl("MT", gs_name),
+    chromosome = str_extract(gs_name, "chr(X|Y|\\d*)"),
+    chromosome = ifelse(is_mitochondr, "MT", chromosome),
+    chromosomen = str_replace(chromosome, "chrX", "23"),
+    chromosomen = str_replace(chromosomen, "chrY", "24"),
+    chromosomen = str_replace(chromosomen, "chr", ""),
+    chromosomen = as.numeric(chromosomen),
+    band  = ifelse(is_mitochondr, "10", gs_name),
+    band = str_replace(band, "chr\\d*", ""),
+    band = str_replace_all(band, "q", "-"),
+    band = str_replace_all(band, "[a-zA-Z]", ""),
+    band = as.numeric(band),
+    band = ifelse(band < 0, band + 10, band - 10),
+    location = 100 * chromosomen + band
+  )
+
+scoreTables %>%
+  imap(~mutate(.x, condition = .y)) %>%
+  bind_rows() %>%
+  left_join(gene_positions, by = c(Symbol = "gene_symbol")) %>%
+  filter(!is.na(chromosome)) %>%
+  rename(
+    any_of(colrenames)
+  ) %>%
+  mutate(
+    condition = factor(condition),
+    chromosome = factor(chromosome, levels = c(
+      "chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7",
+      "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", 
+      "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", 
+      "chr22", "chrX", "chrY", "MT" 
+    ))
+  ) %>%
+  group_by(condition, chromosome, band) %>%
+  mutate(
+    median_logFC = median(logFC),
+    q1_logFC = quantile(logFC, 0.05),
+    q3_logFC = quantile(logFC, 0.95)
+  ) %>%
+  ggplot(aes(x=band)) +
+    facet_grid(rows = vars(condition), cols = vars(chromosome), scales = "free", switch="both") +
+    geom_point(aes(y = logFC, color = logFC), size=0.5) +
+    geom_ribbon(aes(ymin = q1_logFC, ymax = q3_logFC), fill = "#F9E076") +
+    geom_line(aes(y = median_logFC)) +
+    scale_color_gradientn(
+      colors=c('#2b8cbe', '#00bfff', 'grey', 'grey', 'grey', '#e38071', '#e31e00'),
+      breaks=c(-4, -2, -1, 0, 1, 2, 4),
+      limits=c(-4, 4), oob = scales::squish
+    ) +
+    theme_bw() +
+    theme(
+      strip.text.y.left = element_text(size=8, angle=0, vjust=0),
+      strip.text.x.bottom = element_text(size=6, angle=60, margin=margin(t=2, r=7, b=7, l=7)),
+      strip.background = element_rect(colour="white", fill="#ffffff"),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.spacing = unit(0.1, "lines")
+    ) + 
+    labs(x="", y="", color=score_column)
+}
+
+plot_local_changes(opt$scoreTables, opt$geneSet)
+```
+
+
+```{r}
+opt$geneSet <- download_ontologies()
+head(opt$geneSet)
+```
+
+```{r}
+biassed_as_test <- opt$geneSet %>%
+  filter(gs_name %in% c("chr10p12", "chr1p12")) %>%
+  .$gene_symbol
+
+scoreTab <- opt$scoreTables$Condition_1 %>%
+  mutate(
+    logFC = ifelse(Symbol %in% biassed_as_test, 10*logFC, logFC)
+  )
+```
+
+```{r}
+gsea_local_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NULL){
+
+  cn <- colnames(scoreTable)
+  if (is.null(score_column)){
+    score_column <- cn[3]
+  }
+  genesym <- cn[2]
+  scoreTable <- scoreTable %>%
+    distinct(across(one_of(c(genesym))), .keep_all = TRUE)
+  hitGenes <- scoreTable[[score_column]]
+  names(hitGenes) <- scoreTable[[genesym]]
+  hitGenes <- hitGenes[order(hitGenes, decreasing=TRUE)]
+  hitGenes <- hitGenes[!is.na(hitGenes)]
+
+  enrichment <- clusterProfiler::GSEA(
+    hitGenes,
+    TERM2GENE=geneSet,
+    pAdjustMethod="none",
+    pvalueCutoff=0.05
+  )
+  enrichment@result <- enrichment@result %>%
+    mutate(
+      absNES = abs(NES),
+      group = conditionName
+    ) %>%
+    arrange(desc(absNES))
+  
+  return(enrichment)
+}
+```
+
+```{r}
+enrichment <- gsea_local_enrichments(scoreTab, "ZZ", opt$geneSet)
+```
+```{r}
+clusterProfiler::dotplot(enrichment, showCategory=30)
+```
+```{r}
+enrichment2 <- gsea_local_enrichments(opt$scoreTables$Condition_1, "ZZ", opt$geneSet)
+```
+```{r}
+clusterProfiler::dotplot(enrichment2, showCategory=30)
+```
+
+
+
+
+```{r}
+gsea_plots <- do.call(plot_gsea, opt[!(names(opt) %in% c(
+  "msig_category", "msig_subcategory", "msig_species", "outPrefix", "commandRpath", "outFile"
+))])
+print("\n")
+print(names(gsea_plots$enrichments))
+```
+
+```{r fig.width=7.2, fig.height=2.4}
+gsea_plots$genedot
+```
+```{r fig.width=7.2, fig.height=2.4}
+gsea_plots$setchange
+```
