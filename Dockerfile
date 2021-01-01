@@ -1,5 +1,7 @@
 FROM rocker/tidyverse:3.6.3
 
+RUN sudo apt-get install -y r-cran-lattice
+
 RUN install2.r --error \
     --deps TRUE \
     devtools \
@@ -10,8 +12,7 @@ RUN install2.r --error \
     survival \
     survminer \
     msigdbr \
-    pheatmap \
-    lattice
+    pheatmap
 
 
 RUN R -e "BiocManager::install('HPAanalyze')"
