@@ -1,5 +1,6 @@
 FROM rocker/tidyverse:3.6.3
 
+RUN sudo apt update
 RUN sudo apt-get install -y r-cran-lattice
 
 RUN install2.r --error \
