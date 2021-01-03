@@ -6,7 +6,6 @@ FROM rocker/tidyverse
 
 RUN sudo apt-get update -y
 RUN sudo apt-get install -y libxt-dev
-#RUN sudo apt-get install libXt-devel, libgtk2.0-dev, libcairo2-dev, xvfb, xauth, xfonts-base
 
 RUN install2.r --error \
     --deps TRUE \
@@ -39,6 +38,6 @@ RUN R -e "BiocManager::install('cowplot')"
 RUN R -e "devtools::install_github('GuangchuangYu/scatterpie')"
 RUN R -e "devtools::install_github('GuangchuangYu/ggplotify')"
 
-RUN R -e "devtools::install_github('kevinblighe/EnhancedVolcano')"
+RUN sudo R -e "devtools::install_github('kevinblighe/EnhancedVolcano')"
 
 ADD ./ /commonR
