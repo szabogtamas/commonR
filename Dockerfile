@@ -4,6 +4,9 @@ FROM rocker/tidyverse
 #RUN sudo apt update
 #RUN sudo apt-get install -y r-cran-lattice
 
+RUN sudo apt update
+RUN sudo apt-get install libXt-devel, libgtk2.0-dev, libcairo2-dev, xvfb, xauth, xfonts-base
+
 RUN install2.r --error \
     --deps TRUE \
     devtools \
