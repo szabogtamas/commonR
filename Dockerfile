@@ -5,7 +5,7 @@ FROM rocker/tidyverse
 #RUN sudo apt-get install -y r-cran-lattice
 
 RUN sudo apt-get update -y
-RUN sudo apt-get install -y libcairo2-dev
+RUN sudo apt-get install -y libxt-dev
 #RUN sudo apt-get install libXt-devel, libgtk2.0-dev, libcairo2-dev, xvfb, xauth, xfonts-base
 
 RUN install2.r --error \
