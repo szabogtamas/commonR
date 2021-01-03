@@ -18,7 +18,8 @@ RUN install2.r --error \
     survival \
     survminer \
     msigdbr \
-    pheatmap
+    pheatmap \
+    proj4
 
 
 RUN R -e "BiocManager::install('HPAanalyze')"
