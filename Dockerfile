@@ -32,12 +32,12 @@ RUN R -e "BiocManager::install('edgeR')"
 RUN R -e "BiocManager::install('DESeq2')"
 RUN R -e "BiocManager::install('DEFormats')"
 RUN R -e "BiocManager::install('HTqPCR')"
-#RUN R -e "BiocManager::install('EnhancedVolcano')"
+RUN R -e "BiocManager::install('EnhancedVolcano', version='3.9')"
 RUN R -e "BiocManager::install('org.Hs.eg.db')"
 RUN R -e "BiocManager::install('cowplot')"
 RUN R -e "devtools::install_github('GuangchuangYu/scatterpie')"
 RUN R -e "devtools::install_github('GuangchuangYu/ggplotify')"
 
-RUN sudo R -e "devtools::install_github('kevinblighe/EnhancedVolcano')"
+#RUN sudo R -e "devtools::install_github('kevinblighe/EnhancedVolcano')"
 
 ADD ./ /commonR
