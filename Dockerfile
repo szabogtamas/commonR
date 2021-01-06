@@ -5,8 +5,9 @@ FROM rocker/tidyverse
 #RUN sudo apt-get install -y r-cran-lattice
 
 RUN sudo apt-get update -y
-RUN sudo apt-get install -y libxt-dev
-RUN sudo /sbin/ldconfig -v
+RUN sudo apt-get remove -y libxt-dev
+#RUN sudo apt-get install -y libxt-dev
+#RUN sudo /sbin/ldconfig -v
 
 RUN install2.r --error \
     --deps TRUE \
