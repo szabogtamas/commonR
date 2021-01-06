@@ -12,7 +12,8 @@ RUN sudo apt-get install -y libxt-dev
 RUN install2.r --error \
     --deps TRUE \
     devtools \
-    rlang
+    rlang \
+    proj4
 
 RUN R -e "remove.packages('proj4')"
 RUN R -e "BiocManager::install('EnhancedVolcano')"
