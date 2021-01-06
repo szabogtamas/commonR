@@ -16,4 +16,6 @@ RUN install2.r --error \
 
 RUN R -e "BiocManager::install('EnhancedVolcano')"
 
+RUN ls /usr/local/lib/R/site-library/proj4/libs/
+
 ADD ./ /commonR
