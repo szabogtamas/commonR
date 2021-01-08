@@ -125,8 +125,15 @@ progenyPathwayScores <- function(readCounts, conditionLabels, expSpecies, condit
     DESeqDataSetFromMatrix(colData = metaData, design = ~group) %>%
     estimateSizeFactors() %>%
     estimateDispersions() %>%
-    getVarianceStabilizedData() %>%
-    progeny(scale=FALSE, organism=expSpecies) %>%
+    getVarianceStabilizedData()
+  
+  if(expSpecies %in% c("Human", "Homo sapiens")){
+    gexInfo <- progeny(gexInfo, scale=FALSE)
+   } else { # Only the newer version of PROGENy, in the v4.0 image accepts mouse genes
+     gexInfo <- progeny(gexInfo, scale=FALSE, organism=expSpecies)
+   }
+  
+  gexInfo <- gexInfo %>%
     data.frame() %>%
     rownames_to_column(var = "SampleID")
   
