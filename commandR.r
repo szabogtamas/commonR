@@ -38,7 +38,25 @@ fig2pdf <- function(figure, filename_base, height, width){
 }
 
 
-#' Save a dataframe to tsv. Rownames bacome first columns. If rownames are not human-
+#' Save a dataframe to tsv. Rownames bacome first columns.
+#' 
+#' @param tab data.frame.         The table to be saved.
+#' @param filename_base string.   File name, with path and prefix, but no extension.
+#' 
+#' @return NULL.
+tab2tsv <- function(tab, filename_base){
+  tab %>%  
+    write.table(
+      paste0(filename_base, ".tsv"),
+      quote=FALSE,
+      sep="\t",
+      row.names=FALSE
+    )
+  invisible(NULL)
+}
+
+
+#' Save gene info (gex) to tsv. Rownames bacome first columns. If rownames are not human-
 #' friendly IDs, the second column can be a more readable mapping, provided by relabels.
 #' 
 #' @param tab data.frame.         The table to be saved.

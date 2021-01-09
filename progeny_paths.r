@@ -73,11 +73,11 @@ main <- function(opt){
   cat("Testing DE with EdgeR\n")
   progeny_results <- do.call(progenyPathwayScores, opt)
   cat("Saving tables\n")
-  tab2tsv(progeny_results$table, paste0(outFile))
+  tab2tsv(progeny_results$table, outFile)
   
   cat("Saving figures\n")
   p <- plot_grid(progeny_results$figures$heat, progeny_results$figures$box, ncol=1)
-  fig2pdf(p, paste0(outFile), height=8.64, width=7.2)
+  fig2pdf(p, outFile, height=8.64, width=7.2)
 
   invisible(NULL)
 }
