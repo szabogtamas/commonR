@@ -1,8 +1,7 @@
-FROM rocker/tidyverse:3.6.3
+FROM rocker/tidyverse:4.0.1
 
-# Not recommended with Rocker, but this is the only workaround that fixes DESeq2
-RUN sudo apt update
-RUN sudo apt-get install -y r-cran-lattice
+RUN sudo apt-get update -y
+RUN sudo apt-get install -y libxt-dev
 
 RUN install2.r --error \
     --deps TRUE \
@@ -28,7 +27,6 @@ RUN R -e "BiocManager::install('edgeR')"
 RUN R -e "BiocManager::install('DESeq2')"
 RUN R -e "BiocManager::install('DEFormats')"
 RUN R -e "BiocManager::install('HTqPCR')"
-RUN R -e "BiocManager::install('EnhancedVolcano')"
 RUN R -e "BiocManager::install('org.Hs.eg.db')"
 RUN R -e "BiocManager::install('cowplot')"
 RUN R -e "devtools::install_github('GuangchuangYu/scatterpie')"
