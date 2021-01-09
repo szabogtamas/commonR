@@ -10,8 +10,8 @@ RUN install2.r --error \
     optparse \
     docstring \
     openxlsx \
-    survival \
-    survminer \
+    #survival \
+    #survminer \
     msigdbr \
     pheatmap
 
