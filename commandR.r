@@ -184,7 +184,15 @@ parser4arglist <- function(parser, arg_defs){
   invisible(parser)
 }
 
-if (!interactive() & sys.nframe() == 0L) {
+if (exists("not_called_by_another")){
+    if (is.null(not_called_by_another)){
+        not_called_by_another <- TRUE
+    }
+} else {
+    not_called_by_another <- TRUE
+}
+
+if (!interactive() & not_called_by_another) {
   
   # Initialize parser with verbosity and description of script
   parser <- OptionParser(usage=paste0("%prog [options]\nDescription:\n  ", scriptDescription))

@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 
+not_called_by_another <- FALSE
 source("gsea_ontologies.r", local=TRUE)
 
 scriptDescription <- "A script that takes a DE result and checks overrepresented genomic locations via GSEA."
@@ -285,4 +286,5 @@ scoreTables %>%
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
+not_called_by_another <- TRUE
 source(opt$commandRpath, local=TRUE)
