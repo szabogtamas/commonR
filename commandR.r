@@ -184,7 +184,7 @@ parser4arglist <- function(parser, arg_defs){
   invisible(parser)
 }
 
-if (!interactive()) {
+if (!interactive() & sys.nframe() == 0L) {
   
   # Initialize parser with verbosity and description of script
   parser <- OptionParser(usage=paste0("%prog [options]\nDescription:\n  ", scriptDescription))
