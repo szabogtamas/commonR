@@ -59,7 +59,7 @@ for (rn in names(scriptOptionalArgs)){
 
 for (
   pk in c(
-    "tidyr", "dplyr", "purrr", "tibble", "ggplot2", "cowplot", "msigdbr",
+    "tidyr", "dplyr", "stringr", "purrr", "tibble", "ggplot2", "cowplot", "msigdbr",
     "clusterProfiler", "rlang"
   )
 ){
@@ -83,7 +83,7 @@ main <- function(opt){
   opt$commandRpath <- NULL
   opt$help <- NULL
 
-  opt$geneSet <- download_ontologies(opt$sig_species, "C1", NULL)
+  opt$geneSet <- download_ontologies(opt$msig_species, "C1", NULL)
   p <- do.call(plot_positional, opt)
   
   if(opt$verbose){
