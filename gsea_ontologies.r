@@ -273,7 +273,8 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 #' @param enrichmentList named list. Enrichment results.
 #' @param plot_title string. Title of the figure.
 #' @param n_to_show. Maximum number of enriched gene sets to show.
-#' @param conditionOrder character. Oreder of experimental conditions.
+#' @param conditionOrder character. Order of experimental conditions.
+#' @param gs_hjust integer. Left-shift of title text. Required by long GS names.
 #' @usage gsea_enrichdot(enrichmentList, plot_title="Top gene sets", n_to_show=20, conditionOrder=NULL)
 #' @return ggplot
 #' @details Color corresponds to Normalized Enrichment score, while size shows
@@ -282,7 +283,7 @@ gsea_enrichments <- function(scoreTable, conditionName, geneSet, score_column=NU
 #' @examples
 #' gsea_enrichdot(enrichmentList)
 #' gsea_enrichdot(enrichmentList, plot_title="Top gene sets")
-gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditionOrder=NULL){
+gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditionOrder=NULL, gs_hjust=-2){
 
   if(is.null(conditionOrder)){
     conditionOrder <- names(enrichmentList)
@@ -324,7 +325,7 @@ gsea_enrichdot <- function(enrichmentList, plot_title="", n_to_show=30, conditio
     theme(
       axis.text.x=element_text(angle=30, hjust=1),
       axis.text.y=element_text(size=8),
-      plot.title = element_text(hjust=-2)
+      plot.title = element_text(hjust=gs_hjust)
     ) +
     labs(x="", y="")
 
