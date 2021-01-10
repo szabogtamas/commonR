@@ -180,7 +180,7 @@ plot_positional <- function(
   if(verbose){
     cat("Plotting dotplot of top gene sets\n")
   }
-  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show, conditionOrder)
+  p1 <-  gsea_enrichdot(enrichments, plot_title, n_to_show, conditionOrder, gs_hjust=0)
   
   if(verbose){
     cat("Plotting topological distibution of fold changes\n")
