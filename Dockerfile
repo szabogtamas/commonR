@@ -16,4 +16,4 @@ RUN install2.r --error \
 
 RUN R -e "devtools::install_github('GuangchuangYu/ggplotify')"
 
-ADD ./ /commonR
+ADD ./ /home/rstudio/git_repo
