@@ -33,4 +33,4 @@ RUN R -e "BiocManager::install('cowplot')"
 RUN R -e "devtools::install_github('GuangchuangYu/scatterpie')"
 RUN R -e "devtools::install_github('GuangchuangYu/ggplotify')"
 
-ADD ./ /home/rstudio/git_repo
+ADD ./ /home/commonR
