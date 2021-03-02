@@ -532,4 +532,5 @@ download_ontologies <- function(msig_species=opt$msig_species, msig_category=opt
 }
 
 # Ensuring command line connectivity by sourcing an argument parser
-source(opt$commandRpath, local=TRUE)
+rg1 <- commandArgs()
+source(rg1[[which(rg1 == "--commandRpath") + 1]], local=TRUE)
